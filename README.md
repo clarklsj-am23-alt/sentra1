@@ -1,6 +1,6 @@
 # sentra1
 
-A new Flutter project.
+Public Transports Checking and Tracking
 
 ## Getting Started
 

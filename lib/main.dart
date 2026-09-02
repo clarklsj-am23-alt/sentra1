@@ -1,38 +1,146 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() => runApp(const MaterialApp(home: DevDashboard()));
+// Practical 11 Supabase Configuration
+const String supabaseUrl = 'YOUR_SUPABASE_URL'; // Shared by Cheng Zhe
+const String supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
 
-class DevDashboard extends StatelessWidget {
-  const DevDashboard({super.key});
+const Color appYellow = Color(0xFFFCEB00);
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Step 18 from Practical 11
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseKey,
+  );
+
+  runApp(const Sentra1App());
+}
+
+final supabase = Supabase.instance.client;
+
+class Sentra1App extends StatelessWidget {
+  const Sentra1App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Sentra1 Accessibility Transit',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        textTheme: GoogleFonts.dmSansTextTheme(ThemeData.light().textTheme),
+        colorScheme: ColorScheme.light(
+          primary: appYellow,
+          onPrimary: Colors.black,
+          secondary: Colors.black,
+          onSecondary: appYellow,
+          surface: Colors.white,
+          onSurface: Colors.black,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: appYellow,
+          elevation: 2,
+          titleTextStyle: GoogleFonts.dmSans(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: appYellow,
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.black,
+          indicatorColor: appYellow,
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return GoogleFonts.dmSans(
+                color: appYellow,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              );
+            }
+            return GoogleFonts.dmSans(
+              color: Colors.grey,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: Colors.black);
+            }
+            return const IconThemeData(color: Colors.grey);
+          }),
+        ),
+      ),
+      home: const MainNavigationShell(),
+    );
+  }
+}
+
+class MainNavigationShell extends StatefulWidget {
+  const MainNavigationShell({super.key});
+
+  @override
+  State<MainNavigationShell> createState() => _MainNavigationShellState();
+}
+
+class _MainNavigationShellState extends State<MainNavigationShell> {
+  int _currentIndex = 0;
+
+  // Once teammates finish their screens in lib/features/,
+  // replace these placeholders with their imported classes:
+  final List<Widget> _screens = const [
+
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sentra1 - Dev Launchpad')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          ElevatedButton(
-            onPressed: () {}, // Navigate to Jia Cheng's GPS screen
-            child: const Text('Jia Cheng: Stations Nearby (GPS)'),
+      appBar: AppBar(
+        title: const Text('Sentra1'),
+        actions: [
+          // Entry point for Cheng Zhe's User Profile & Accessibility Settings
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: appYellow),
+            onPressed: () {
+              // Navigator.push to Cheng Zhe's profile screen
+            },
           ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {}, // Navigate to Clark's GTFS screen
-            child: const Text('Clark: Live Arrivals (GTFS API)'),
+        ],
+      ),
+      body: _screens[_currentIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
+            label: 'Explore Map',
           ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {}, // Navigate to Tham's Places Search screen
-            child: const Text('Tham: Destination Search (Places API)'),
+          NavigationDestination(
+            icon: Icon(Icons.alt_route_outlined),
+            selectedIcon: Icon(Icons.alt_route),
+            label: 'Trip Planner',
           ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: () {}, // Navigate to Cheng Zhe's Compass screen
-            child: const Text('Cheng Zhe: Exit Compass (Magnetometer)'),
+          NavigationDestination(
+            icon: Icon(Icons.departure_board_outlined),
+            selectedIcon: Icon(Icons.departure_board),
+            label: 'Schedules',
           ),
         ],
       ),
     );
   }
 }
+
+// Keep the MapHomeScreen, JourneyPlannerScreen, and RoutesScheduleScreen classes below as fallback UI until each member replaces them with their actual feature folders.

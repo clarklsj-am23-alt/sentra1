@@ -92,10 +92,38 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
-  // Once teammates finish their screens in lib/features/,
-  // replace these placeholders with their imported classes:
+  // 3 tabs matching the 3 NavigationDestinations below
   final List<Widget> _screens = const [
-
+    Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.map, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('Explore Map (Jia Cheng)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    ),
+    Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.alt_route, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('Trip Planner (Tham)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    ),
+    Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.departure_board, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('Schedules & Cards (Clark)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    ),
   ];
 
   @override
@@ -104,11 +132,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       appBar: AppBar(
         title: const Text('Sentra1'),
         actions: [
-          // Entry point for Cheng Zhe's User Profile & Accessibility Settings
           IconButton(
             icon: const Icon(Icons.account_circle, color: appYellow),
             onPressed: () {
-              // Navigator.push to Cheng Zhe's profile screen
+              // TODO: Navigator.push to Cheng Zhe's user_management profile screen
             },
           ),
         ],

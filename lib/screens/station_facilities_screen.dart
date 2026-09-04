@@ -61,6 +61,83 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
     await loadFacilities();
   }
 
+  Future<void> editFacility(Map<String, dynamic> facility) async {
+    stationController.text = facility['station_name'];
+    facilityController.text = facility['facility_type'];
+    locationController.text = facility['location'];
+    statusController.text = facility['status'];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Facility'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: stationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Station Name',
+                  ),
+                ),
+                TextField(
+                  controller: facilityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Facility Type',
+                  ),
+                ),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                  ),
+                ),
+                TextField(
+                  controller: statusController,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await db.updateFacility(
+                  id: facility['id'],
+                  stationName: stationController.text,
+                  facilityType: facilityController.text,
+                  location: locationController.text,
+                  status: statusController.text,
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+
+                stationController.clear();
+                facilityController.clear();
+                locationController.clear();
+                statusController.clear();
+
+                await loadFacilities();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,11 +197,22 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
                         'Location: ${facility['location']}\n'
                             'Status: ${facility['status']}',
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          deleteFacility(facility['id']);
-                        },
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              editFacility(facility);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              deleteFacility(facility['id']);
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   );

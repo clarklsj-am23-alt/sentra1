@@ -81,6 +81,28 @@ class StationFacilitiesDatabase {
     );
   }
 
+  Future<int> updateFacility({
+    required int id,
+    required String stationName,
+    required String facilityType,
+    required String location,
+    required String status,
+  }) async {
+    final db = await database;
+
+    return await db.update(
+      'station_facilities',
+      {
+        'station_name': stationName,
+        'facility_type': facilityType,
+        'location': location,
+        'status': status,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // Delete facility
   Future<int> deleteFacility(int id) async {
     final db = await database;

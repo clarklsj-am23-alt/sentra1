@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Teammate screens
-import 'screens/station_facilities_screen.dart';
-import 'screens/station_map_screen.dart';
+// Tab 1: Explore Map (Jia Cheng)
+import 'features/stations_nearby/screens/map_home_screen.dart';
 
-// Your feature screen (GTFS, Fee Rate & Transit Cards)
+// Tab 2: Trip Planner (Tham)
+import 'features/station_search/screens/journey_planner_screen.dart';
+
+// Tab 3: Schedules & Cards (Clark)
 import 'features/transit_card/screens/transit_dashboard_screen.dart';
 
-// Practical 11 Supabase Configuration
+const Color appYellow = Color(0xFFFCEB00);
+
 const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co';
 const String supabaseKey = 'sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
-
-const Color appYellow = Color(0xFFFCEB00);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,9 +40,7 @@ class Sentra1App extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        textTheme: GoogleFonts.dmSansTextTheme(
-          ThemeData.light().textTheme,
-        ),
+        textTheme: GoogleFonts.dmSansTextTheme(ThemeData.light().textTheme),
         colorScheme: const ColorScheme.light(
           primary: appYellow,
           onPrimary: Colors.black,
@@ -79,14 +78,29 @@ class Sentra1App extends StatelessWidget {
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(
-                color: Colors.black,
-              );
+              return const IconThemeData(color: Colors.black);
             }
-            return const IconThemeData(
-              color: Colors.grey,
-            );
+            return const IconThemeData(color: Colors.grey);
           }),
+        ),
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+              if (states.contains(WidgetState.selected)) {
+                return appYellow;
+              }
+              return Colors.grey.shade200;
+            }),
+            foregroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+              if (states.contains(WidgetState.selected)) {
+                return Colors.black;
+              }
+              return Colors.black87;
+            }),
+            textStyle: WidgetStateProperty.all(
+              GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
       ),
       home: const MainNavigationShell(),
@@ -105,37 +119,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
-    Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.map, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'Explore Map (Jia Cheng)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    ),
-    ThamFeatureHomeScreen(),
-    TransitDashboardScreen(), // <-- Clark's feature screen (Tab index 2)
+    MapHomeScreen(),         // Tab 0
+    JourneyPlannerScreen(),  // Tab 1
+    TransitDashboardScreen(),// Tab 2
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sentra1'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle, color: appYellow),
-            onPressed: () {
-              // Cheng Zhe's user_management profile screen hook
-            },
-          ),
-        ],
-      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -159,53 +150,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             icon: Icon(Icons.departure_board_outlined),
             selectedIcon: Icon(Icons.departure_board),
             label: 'Schedules & Cards',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ThamFeatureHomeScreen extends StatelessWidget {
-  const ThamFeatureHomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.alt_route, size: 64, color: Colors.grey),
-          const SizedBox(height: 12),
-          const Text(
-            'Trip Planner (Tham)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.accessible),
-            label: const Text('Station Facilities'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StationFacilitiesScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.map),
-            label: const Text('Station Map'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StationMapScreen(),
-                ),
-              );
-            },
           ),
         ],
       ),

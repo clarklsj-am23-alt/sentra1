@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'screens/station_facilities_screen.dart';
 // Practical 11 Supabase Configuration
 const String supabaseUrl = 'YOUR_SUPABASE_URL'; // Shared by Cheng Zhe
 const String supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
@@ -100,27 +100,32 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         children: [
           Icon(Icons.map, size: 64, color: Colors.grey),
           SizedBox(height: 12),
-          Text('Explore Map (Jia Cheng)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'Explore Map (Jia Cheng)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     ),
-    Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.alt_route, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text('Trip Planner (Tham)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    ),
+
+    ThamFeatureHomeScreen(),
+
     Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.departure_board, size: 64, color: Colors.grey),
           SizedBox(height: 12),
-          Text('Schedules & Cards (Clark)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            'Schedules & Cards (Clark)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     ),
@@ -169,5 +174,48 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     );
   }
 }
+class ThamFeatureHomeScreen extends StatelessWidget {
+  const ThamFeatureHomeScreen({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.alt_route,
+            size: 64,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 12),
+
+          const Text(
+            'Trip Planner (Tham)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          ElevatedButton.icon(
+            icon: const Icon(Icons.accessible),
+            label: const Text('Station Facilities'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                  const StationFacilitiesScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
 // Keep the MapHomeScreen, JourneyPlannerScreen, and RoutesScheduleScreen classes below as fallback UI until each member replaces them with their actual feature folders.

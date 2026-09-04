@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Teammate screens
 import 'screens/station_facilities_screen.dart';
 import 'screens/station_map_screen.dart';
 
+// Your feature screen (GTFS, Fee Rate & Transit Cards)
+import 'features/transit_card/screens/transit_dashboard_screen.dart';
+
 // Practical 11 Supabase Configuration
-const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co/ '; // Shared by Cheng Zhe
-const String supabaseKey = 'SUPABASE_PUBLISHABLE_KEY=sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
+const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co';
+const String supabaseKey = 'sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
 
 const Color appYellow = Color(0xFFFCEB00);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Step 18 from Practical 11
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseKey,
@@ -68,7 +71,6 @@ class Sentra1App extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               );
             }
-
             return GoogleFonts.dmSans(
               color: Colors.grey,
               fontSize: 12,
@@ -81,7 +83,6 @@ class Sentra1App extends StatelessWidget {
                 color: Colors.black,
               );
             }
-
             return const IconThemeData(
               color: Colors.grey,
             );
@@ -97,59 +98,28 @@ class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
 
   @override
-  State<MainNavigationShell> createState() =>
-      _MainNavigationShellState();
+  State<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState
-    extends State<MainNavigationShell> {
+class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
-  // 3 tabs matching the 3 NavigationDestinations below
   final List<Widget> _screens = const [
     Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.map,
-            size: 64,
-            color: Colors.grey,
-          ),
+          Icon(Icons.map, size: 64, color: Colors.grey),
           SizedBox(height: 12),
           Text(
             'Explore Map (Jia Cheng)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     ),
-
     ThamFeatureHomeScreen(),
-
-    Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.departure_board,
-            size: 64,
-            color: Colors.grey,
-          ),
-          SizedBox(height: 12),
-          Text(
-            'Schedules & Cards (Clark)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    ),
+    TransitDashboardScreen(), // <-- Clark's feature screen (Tab index 2)
   ];
 
   @override
@@ -159,13 +129,9 @@ class _MainNavigationShellState
         title: const Text('Sentra1'),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.account_circle,
-              color: appYellow,
-            ),
+            icon: const Icon(Icons.account_circle, color: appYellow),
             onPressed: () {
-              // TODO: Navigator.push to Cheng Zhe's
-              // user_management profile screen
+              // Cheng Zhe's user_management profile screen hook
             },
           ),
         ],
@@ -192,7 +158,7 @@ class _MainNavigationShellState
           NavigationDestination(
             icon: Icon(Icons.departure_board_outlined),
             selectedIcon: Icon(Icons.departure_board),
-            label: 'Schedules',
+            label: 'Schedules & Cards',
           ),
         ],
       ),
@@ -209,25 +175,13 @@ class ThamFeatureHomeScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.alt_route,
-            size: 64,
-            color: Colors.grey,
-          ),
-
+          const Icon(Icons.alt_route, size: 64, color: Colors.grey),
           const SizedBox(height: 12),
-
           const Text(
             'Trip Planner (Tham)',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 24),
-
-          // Station Facilities Button
           ElevatedButton.icon(
             icon: const Icon(Icons.accessible),
             label: const Text('Station Facilities'),
@@ -235,16 +189,12 @@ class ThamFeatureHomeScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                  const StationFacilitiesScreen(),
+                  builder: (context) => const StationFacilitiesScreen(),
                 ),
               );
             },
           ),
-
           const SizedBox(height: 12),
-
-          // Station Map Button
           ElevatedButton.icon(
             icon: const Icon(Icons.map),
             label: const Text('Station Map'),
@@ -252,8 +202,7 @@ class ThamFeatureHomeScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                  const StationMapScreen(),
+                  builder: (context) => const StationMapScreen(),
                 ),
               );
             },

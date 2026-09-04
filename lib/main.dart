@@ -6,8 +6,8 @@ import 'screens/station_facilities_screen.dart';
 import 'screens/station_map_screen.dart';
 
 // Practical 11 Supabase Configuration
-const String supabaseUrl = 'YOUR_SUPABASE_URL'; // Shared by Cheng Zhe
-const String supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co/ '; // Shared by Cheng Zhe
+const String supabaseKey = 'SUPABASE_PUBLISHABLE_KEY=sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
 
 const Color appYellow = Color(0xFFFCEB00);
 

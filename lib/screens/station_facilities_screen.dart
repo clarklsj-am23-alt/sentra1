@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../database/station_facilities_database.dart';
+import '../database/station_facilities_database.dart';
 
 class StationFacilitiesScreen extends StatefulWidget {
   const StationFacilitiesScreen({super.key});
@@ -28,24 +28,31 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
   Future<void> loadFacilities() async {
     final data = await db.getFacilities();
 
+    if (!mounted) return;
+
     setState(() {
       facilities = data;
     });
   }
 
   Future<void> addFacility() async {
-    if (stationController.text.isEmpty ||
-        facilityController.text.isEmpty ||
-        locationController.text.isEmpty ||
-        statusController.text.isEmpty) {
+    if (stationController.text.trim().isEmpty ||
+        facilityController.text.trim().isEmpty ||
+        locationController.text.trim().isEmpty ||
+        statusController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all fields'),
+        ),
+      );
       return;
     }
 
     await db.addFacility(
-      stationName: stationController.text,
-      facilityType: facilityController.text,
-      location: locationController.text,
-      status: statusController.text,
+      stationName: stationController.text.trim(),
+      facilityType: facilityController.text.trim(),
+      location: locationController.text.trim(),
+      status: statusController.text.trim(),
     );
 
     stationController.clear();
@@ -54,11 +61,30 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
     statusController.clear();
 
     await loadFacilities();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Facility added successfully'),
+        backgroundColor: Colors.greenAccent,
+      ),
+    );
   }
 
   Future<void> deleteFacility(int id) async {
     await db.deleteFacility(id);
+
     await loadFacilities();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Facility deleted successfully'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   Future<void> editFacility(Map<String, dynamic> facility) async {
@@ -69,11 +95,12 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
 
     await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Edit Facility'),
           content: SingleChildScrollView(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: stationController,
@@ -105,22 +132,39 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
+
+                stationController.clear();
+                facilityController.clear();
+                locationController.clear();
+                statusController.clear();
               },
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
+                if (stationController.text.trim().isEmpty ||
+                    facilityController.text.trim().isEmpty ||
+                    locationController.text.trim().isEmpty ||
+                    statusController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please fill in all fields'),
+                    ),
+                  );
+                  return;
+                }
+
                 await db.updateFacility(
                   id: facility['id'],
-                  stationName: stationController.text,
-                  facilityType: facilityController.text,
-                  location: locationController.text,
-                  status: statusController.text,
+                  stationName: stationController.text.trim(),
+                  facilityType: facilityController.text.trim(),
+                  location: locationController.text.trim(),
+                  status: statusController.text.trim(),
                 );
 
-                if (context.mounted) {
-                  Navigator.pop(context);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
                 }
 
                 stationController.clear();
@@ -129,6 +173,14 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
                 statusController.clear();
 
                 await loadFacilities();
+
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Facility updated successfully'),
+                  ),
+                );
               },
               child: const Text('Save'),
             ),
@@ -191,7 +243,8 @@ class _StationFacilitiesScreenState extends State<StationFacilitiesScreen> {
                   return Card(
                     child: ListTile(
                       title: Text(
-                        '${facility['station_name']} - ${facility['facility_type']}',
+                        '${facility['station_name']} - '
+                            '${facility['facility_type']}',
                       ),
                       subtitle: Text(
                         'Location: ${facility['location']}\n'

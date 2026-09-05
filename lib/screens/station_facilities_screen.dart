@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
-import '../database/station_facilities_database.dart';
 
-class StationFacilitiesScreen extends StatefulWidget {
-  const StationFacilitiesScreen({super.key});
+import '../database/station_facilities_database.dart';
+import 'station_map_screen.dart';
+
+class StationFacilitiesScreen
+    extends StatefulWidget {
+  final String? initialStation;
+
+  const StationFacilitiesScreen({
+    super.key,
+    this.initialStation,
+  });
 
   @override
-  State<StationFacilitiesScreen> createState() =>
+  State<StationFacilitiesScreen>
+  createState() =>
       _StationFacilitiesScreenState();
 }
 
 class _StationFacilitiesScreenState
     extends State<StationFacilitiesScreen> {
-  final db = StationFacilitiesDatabase.instance;
+  final db =
+      StationFacilitiesDatabase.instance;
 
-  final searchController = TextEditingController();
+  final searchController =
+  TextEditingController();
 
-  List<Map<String, dynamic>> facilities = [];
+  List<Map<String, dynamic>> facilities =
+  [];
 
   String selectedType = 'All';
   bool stepFreeOnly = false;
-
-  // =========================================================
-  // OPTIONS
-  // =========================================================
 
   final List<String> stations = [
     'KL Sentral',
@@ -54,208 +62,21 @@ class _StationFacilitiesScreenState
   @override
   void initState() {
     super.initState();
+
+    if (widget.initialStation != null) {
+      searchController.text =
+      widget.initialStation!;
+    }
+
     loadFacilities();
   }
 
-  // =========================================================
-  // GREEN SUCCESS SNACKBAR
-  // =========================================================
-
-  void showSuccessSnackBar(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-        content: Row(
-          children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // =========================================================
-  // RED ERROR SNACKBAR
-  // =========================================================
-
-  void showErrorSnackBar(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-        content: Row(
-          children: [
-            const Icon(
-              Icons.error,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // =========================================================
-  // BUTTON STYLE
-  // WHITE normally
-  // BLACK when hover / press
-  // =========================================================
-
-  ButtonStyle getInteractiveButtonStyle() {
-    return ButtonStyle(
-      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered) ||
-              states.contains(WidgetState.pressed)) {
-            return Colors.black;
-          }
-
-          return Colors.white;
-        },
-      ),
-
-      foregroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered) ||
-              states.contains(WidgetState.pressed)) {
-            return Colors.white;
-          }
-
-          return Colors.black;
-        },
-      ),
-
-      overlayColor: WidgetStateProperty.resolveWith<Color?>(
-            (states) {
-          if (states.contains(WidgetState.pressed)) {
-            return Colors.grey.shade700;
-          }
-
-          return null;
-        },
-      ),
-
-      side: WidgetStateProperty.resolveWith<BorderSide>(
-            (states) {
-          if (states.contains(WidgetState.hovered) ||
-              states.contains(WidgetState.pressed)) {
-            return const BorderSide(
-              color: Colors.black,
-              width: 2,
-            );
-          }
-
-          return const BorderSide(
-            color: Colors.black,
-            width: 1,
-          );
-        },
-      ),
-
-      textStyle: const WidgetStatePropertyAll(
-        TextStyle(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  // =========================================================
-  // CANCEL BUTTON STYLE
-  // =========================================================
-
-  ButtonStyle getCancelButtonStyle() {
-    return ButtonStyle(
-      foregroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered)) {
-            return Colors.white;
-          }
-
-          return Colors.black;
-        },
-      ),
-      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered)) {
-            return Colors.black;
-          }
-
-          return Colors.transparent;
-        },
-      ),
-    );
-  }
-
-  // =========================================================
-  // ICON BUTTON STYLE
-  // =========================================================
-
-  ButtonStyle getIconButtonStyle() {
-    return ButtonStyle(
-      foregroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered)) {
-            return Colors.white;
-          }
-
-          return Colors.black;
-        },
-      ),
-      backgroundColor: WidgetStateProperty.resolveWith<Color>(
-            (states) {
-          if (states.contains(WidgetState.hovered)) {
-            return Colors.black;
-          }
-
-          return Colors.transparent;
-        },
-      ),
-    );
-  }
-
-  // =========================================================
-  // LOAD / SEARCH / FILTER
-  // =========================================================
-
   Future<void> loadFacilities() async {
     try {
-      final data = await db.getFacilities(
-        search: searchController.text.trim(),
+      final data =
+      await db.getFacilities(
+        search:
+        searchController.text.trim(),
         facilityType: selectedType,
         stepFreeOnly: stepFreeOnly,
       );
@@ -266,23 +87,87 @@ class _StationFacilitiesScreenState
         facilities = data;
       });
     } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        facilities = [];
-      });
-
       showErrorSnackBar(
         'Unable to load facilities.',
       );
     }
   }
 
-  // =========================================================
-  // FACILITY ICON
-  // =========================================================
+  void showSuccessSnackBar(
+      String message,
+      ) {
+    if (!mounted) return;
 
-  IconData getFacilityIcon(String type) {
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.green,
+        behavior:
+        SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style:
+                const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showErrorSnackBar(
+      String message,
+      ) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red,
+        behavior:
+        SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style:
+                const TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData getFacilityIcon(
+      String type,
+      ) {
     switch (type) {
       case 'Lift':
         return Icons.elevator;
@@ -311,7 +196,7 @@ class _StationFacilitiesScreenState
   }
 
   // =========================================================
-  // VIEW FACILITY DETAILS
+  // PUBLIC FACILITY DETAIL
   // =========================================================
 
   void showFacilityDetails(
@@ -320,80 +205,76 @@ class _StationFacilitiesScreenState
     final bool stepFree =
         facility['is_step_free'] == 1;
 
+    final String stationName =
+    facility['station_name']
+        .toString();
+
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (bottomSheetContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: SingleChildScrollView(
+            padding:
+            const EdgeInsets.all(20),
+            child:
+            SingleChildScrollView(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize:
+                MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundColor:
-                        Colors.grey.shade200,
-                        child: Icon(
-                          getFacilityIcon(
-                            facility['facility_type']
-                                .toString(),
-                          ),
-                          color: Colors.black,
-                          size: 30,
-                        ),
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor:
+                    Colors.black,
+                    child: Icon(
+                      getFacilityIcon(
+                        facility[
+                        'facility_type']
+                            .toString(),
                       ),
-
-                      const SizedBox(width: 14),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              facility['facility_type']
-                                  .toString(),
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight:
-                                FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              facility['station_name']
-                                  .toString(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  const Divider(),
-
-                  ListTile(
-                    leading:
-                    const Icon(Icons.train),
-                    title:
-                    const Text('Station'),
-                    subtitle: Text(
-                      facility['station_name']
-                          .toString(),
+                      color: Colors.white,
+                      size: 32,
                     ),
                   ),
+
+                  const SizedBox(
+                    height: 12,
+                  ),
+
+                  Text(
+                    facility['facility_type']
+                        .toString(),
+                    style:
+                    const TextStyle(
+                      fontSize: 24,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+
+                  Text(
+                    stationName,
+                    style:
+                    const TextStyle(
+                      fontSize: 16,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 12,
+                  ),
+
+                  const Divider(),
 
                   ListTile(
                     leading: const Icon(
                       Icons.location_on,
                     ),
-                    title:
-                    const Text('Location'),
+                    title: const Text(
+                      'Location',
+                    ),
                     subtitle: Text(
                       facility['location']
                           .toString(),
@@ -401,11 +282,24 @@ class _StationFacilitiesScreenState
                   ),
 
                   ListTile(
-                    leading: const Icon(
-                      Icons.info_outline,
+                    leading: Icon(
+                      facility['status']
+                          .toString()
+                          .toLowerCase() ==
+                          'available'
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      color: facility['status']
+                          .toString()
+                          .toLowerCase() ==
+                          'available'
+                          ? Colors.green
+                          : Colors.red,
                     ),
                     title:
-                    const Text('Status'),
+                    const Text(
+                      'Status',
+                    ),
                     subtitle: Text(
                       facility['status']
                           .toString(),
@@ -417,7 +311,7 @@ class _StationFacilitiesScreenState
                       Icons.accessible,
                     ),
                     title: const Text(
-                      'Accessibility Note',
+                      'Accessibility',
                     ),
                     subtitle: Text(
                       facility['accessibility_note']
@@ -428,47 +322,128 @@ class _StationFacilitiesScreenState
                           ? facility[
                       'accessibility_note']
                           .toString()
-                          : 'No additional information',
+                          : 'No additional accessibility information.',
                     ),
                   ),
 
                   ListTile(
                     leading: Icon(
                       stepFree
-                          ? Icons.check_circle
+                          ? Icons
+                          .check_circle
                           : Icons.cancel,
                       color: stepFree
                           ? Colors.green
                           : Colors.red,
                     ),
-                    title: const Text(
+                    title:
+                    const Text(
                       'Step-free Access',
                     ),
                     subtitle: Text(
-                      stepFree ? 'Yes' : 'No',
+                      stepFree
+                          ? 'Suitable for a step-free journey'
+                          : 'Not marked as step-free',
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(
+                    height: 14,
+                  ),
+
+                  // =============================
+                  // VIEW ON MAP
+                  // =============================
 
                   SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
+                    width:
+                    double.infinity,
+                    child:
+                    ElevatedButton.icon(
                       style:
-                      getInteractiveButtonStyle(),
+                      ElevatedButton
+                          .styleFrom(
+                        backgroundColor:
+                        Colors.black,
+                        foregroundColor:
+                        Colors.white,
+                        padding:
+                        const EdgeInsets
+                            .symmetric(
+                          vertical: 14,
+                        ),
+                      ),
                       onPressed: () {
                         Navigator.pop(
                           bottomSheetContext,
                         );
 
-                        showFacilityForm(
-                          facility: facility,
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                StationMapScreen(
+                                  initialStation:
+                                  stationName,
+                                ),
+                          ),
                         );
                       },
-                      icon:
-                      const Icon(Icons.edit),
+                      icon: const Icon(
+                        Icons.map,
+                      ),
                       label:
-                      const Text('Edit Facility'),
+                      const Text(
+                        'View on Map',
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 10,
+                  ),
+
+                  // =============================
+                  // REPORT PROBLEM
+                  // =============================
+
+                  SizedBox(
+                    width:
+                    double.infinity,
+                    child:
+                    OutlinedButton.icon(
+                      style:
+                      OutlinedButton
+                          .styleFrom(
+                        foregroundColor:
+                        Colors.black,
+                        side:
+                        const BorderSide(
+                          color:
+                          Colors.black,
+                        ),
+                        padding:
+                        const EdgeInsets
+                            .symmetric(
+                          vertical: 14,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(
+                          bottomSheetContext,
+                        );
+
+                        showSuccessSnackBar(
+                          'Report function will connect to cloud reports.',
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.report_problem,
+                      ),
+                      label:
+                      const Text(
+                        'Report Facility Problem',
+                      ),
                     ),
                   ),
                 ],
@@ -481,65 +456,276 @@ class _StationFacilitiesScreenState
   }
 
   // =========================================================
-  // ADD / EDIT FACILITY
+  // MANAGEMENT MENU
+  // =========================================================
+
+  void showManageFacilities() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding:
+            const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize:
+              MainAxisSize.min,
+              children: [
+                const ListTile(
+                  leading: Icon(
+                    Icons.settings,
+                  ),
+                  title: Text(
+                    'Manage Facilities',
+                    style:
+                    TextStyle(
+                      fontWeight:
+                      FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Maintain local station facility data',
+                  ),
+                ),
+
+                const Divider(),
+
+                ListTile(
+                  leading: const Icon(
+                    Icons.add_circle,
+                  ),
+                  title:
+                  const Text(
+                    'Add Facility',
+                  ),
+                  onTap: () {
+                    Navigator.pop(
+                      sheetContext,
+                    );
+                    showFacilityForm();
+                  },
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                const Text(
+                  'To edit or delete a facility, open Manage mode below.',
+                  style:
+                  TextStyle(
+                    color:
+                    Colors.grey,
+                  ),
+                ),
+
+                const SizedBox(
+                  height: 10,
+                ),
+
+                SizedBox(
+                  width:
+                  double.infinity,
+                  child:
+                  ElevatedButton.icon(
+                    style:
+                    ElevatedButton
+                        .styleFrom(
+                      backgroundColor:
+                      Colors.black,
+                      foregroundColor:
+                      Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(
+                        sheetContext,
+                      );
+
+                      _showManagementList();
+                    },
+                    icon: const Icon(
+                      Icons.edit,
+                    ),
+                    label:
+                    const Text(
+                      'Open Management Mode',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showManagementList() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (
+              context,
+              setSheetState,
+              ) {
+            return SafeArea(
+              child:
+              FractionallySizedBox(
+                heightFactor: 0.85,
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding:
+                      EdgeInsets.all(
+                        16,
+                      ),
+                      child: Text(
+                        'Facility Management',
+                        style:
+                        TextStyle(
+                          fontSize: 22,
+                          fontWeight:
+                          FontWeight
+                              .bold,
+                        ),
+                      ),
+                    ),
+
+                    Expanded(
+                      child:
+                      ListView.builder(
+                        itemCount:
+                        facilities
+                            .length,
+                        itemBuilder:
+                            (
+                            context,
+                            index,
+                            ) {
+                          final facility =
+                          facilities[
+                          index];
+
+                          return ListTile(
+                            leading:
+                            Icon(
+                              getFacilityIcon(
+                                facility[
+                                'facility_type']
+                                    .toString(),
+                              ),
+                            ),
+                            title:
+                            Text(
+                              facility[
+                              'station_name']
+                                  .toString(),
+                            ),
+                            subtitle:
+                            Text(
+                              '${facility['facility_type']} • ${facility['location']}',
+                            ),
+                            trailing:
+                            Row(
+                              mainAxisSize:
+                              MainAxisSize
+                                  .min,
+                              children: [
+                                IconButton(
+                                  icon:
+                                  const Icon(
+                                    Icons.edit,
+                                  ),
+                                  onPressed:
+                                      () {
+                                    Navigator
+                                        .pop(
+                                      sheetContext,
+                                    );
+
+                                    showFacilityForm(
+                                      facility:
+                                      facility,
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon:
+                                  const Icon(
+                                    Icons.delete,
+                                  ),
+                                  onPressed:
+                                      () async {
+                                    Navigator
+                                        .pop(
+                                      sheetContext,
+                                    );
+
+                                    await confirmDelete(
+                                      facility,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // =========================================================
+  // ADD / EDIT
   // =========================================================
 
   Future<void> showFacilityForm({
     Map<String, dynamic>? facility,
   }) async {
-    final List<String> stationOptions =
+    final stationOptions =
     List<String>.from(stations);
 
-    final List<String> facilityOptions =
+    final facilityOptions =
     facilityTypes
         .where(
-          (type) => type != 'All',
+          (type) =>
+      type != 'All',
     )
         .toList();
 
-    final List<String> statusOptions =
-    List<String>.from(statuses);
-
-    // Allow old/custom records to still be edited
-    if (facility != null) {
-      final oldStation =
-      facility['station_name'].toString();
-
-      final oldFacility =
-      facility['facility_type'].toString();
-
-      final oldStatus =
-      facility['status'].toString();
-
-      if (!stationOptions.contains(oldStation)) {
-        stationOptions.add(oldStation);
-      }
-
-      if (!facilityOptions.contains(oldFacility)) {
-        facilityOptions.add(oldFacility);
-      }
-
-      if (!statusOptions.contains(oldStatus)) {
-        statusOptions.add(oldStatus);
-      }
-    }
-
     String selectedStation =
-        facility?['station_name']?.toString() ??
+        facility?['station_name']
+            ?.toString() ??
             stationOptions.first;
 
     String selectedFacilityType =
-        facility?['facility_type']?.toString() ??
+        facility?['facility_type']
+            ?.toString() ??
             facilityOptions.first;
 
     String selectedStatus =
-        facility?['status']?.toString() ??
+        facility?['status']
+            ?.toString() ??
             'Available';
 
     final locationController =
     TextEditingController(
       text:
-      facility?['location']?.toString() ?? '',
+      facility?['location']
+          ?.toString() ??
+          '',
     );
 
     final noteController =
@@ -566,299 +752,292 @@ class _StationFacilitiesScreenState
                 facility == null
                     ? 'Add Facility'
                     : 'Edit Facility',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
               ),
 
-              content: SizedBox(
-                width: 420,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize:
-                    MainAxisSize.min,
-                    children: [
-                      // =========================
-                      // STATION
-                      // =========================
+              content:
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisSize:
+                  MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<
+                        String>(
+                      initialValue:
+                      selectedStation,
+                      isExpanded: true,
+                      decoration:
+                      const InputDecoration(
+                        labelText:
+                        'Station',
+                        border:
+                        OutlineInputBorder(),
+                      ),
+                      items:
+                      stationOptions
+                          .map(
+                            (station) {
+                          return DropdownMenuItem<
+                              String>(
+                            value: station,
+                            child:
+                            Text(
+                              station,
+                            ),
+                          );
+                        },
+                      ).toList(),
+                      onChanged:
+                          (value) {
+                        if (value ==
+                            null) {
+                          return;
+                        }
 
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                        selectedStation,
-                        isExpanded: true,
-                        decoration:
-                        const InputDecoration(
-                          labelText:
-                          'Station Name',
-                          prefixIcon:
-                          Icon(Icons.train),
-                          border:
-                          OutlineInputBorder(),
-                        ),
-                        items: stationOptions
-                            .map(
-                              (station) =>
-                              DropdownMenuItem<
-                                  String>(
-                                value: station,
-                                child:
-                                Text(station),
-                              ),
-                        )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-
-                          setDialogState(() {
+                        setDialogState(
+                              () {
                             selectedStation =
                                 value;
-                          });
-                        },
+                          },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    DropdownButtonFormField<
+                        String>(
+                      initialValue:
+                      selectedFacilityType,
+                      isExpanded: true,
+                      decoration:
+                      const InputDecoration(
+                        labelText:
+                        'Facility Type',
+                        border:
+                        OutlineInputBorder(),
                       ),
+                      items:
+                      facilityOptions
+                          .map(
+                            (type) {
+                          return DropdownMenuItem<
+                              String>(
+                            value: type,
+                            child:
+                            Text(
+                              type,
+                            ),
+                          );
+                        },
+                      ).toList(),
+                      onChanged:
+                          (value) {
+                        if (value ==
+                            null) {
+                          return;
+                        }
 
-                      const SizedBox(height: 14),
-
-                      // =========================
-                      // FACILITY TYPE
-                      // =========================
-
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                        selectedFacilityType,
-                        isExpanded: true,
-                        decoration:
-                        const InputDecoration(
-                          labelText:
-                          'Facility Type',
-                          prefixIcon: Icon(
-                            Icons.accessible,
-                          ),
-                          border:
-                          OutlineInputBorder(),
-                        ),
-                        items: facilityOptions
-                            .map(
-                              (type) =>
-                              DropdownMenuItem<
-                                  String>(
-                                value: type,
-                                child: Text(type),
-                              ),
-                        )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-
-                          setDialogState(() {
+                        setDialogState(
+                              () {
                             selectedFacilityType =
                                 value;
-                          });
+                          },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    TextField(
+                      controller:
+                      locationController,
+                      decoration:
+                      const InputDecoration(
+                        labelText:
+                        'Location',
+                        hintText:
+                        'Exit A / Platform 2',
+                        border:
+                        OutlineInputBorder(),
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    DropdownButtonFormField<
+                        String>(
+                      initialValue:
+                      selectedStatus,
+                      decoration:
+                      const InputDecoration(
+                        labelText:
+                        'Status',
+                        border:
+                        OutlineInputBorder(),
+                      ),
+                      items:
+                      statuses.map(
+                            (status) {
+                          return DropdownMenuItem<
+                              String>(
+                            value:
+                            status,
+                            child:
+                            Text(
+                              status,
+                            ),
+                          );
                         },
-                      ),
+                      ).toList(),
+                      onChanged:
+                          (value) {
+                        if (value ==
+                            null) {
+                          return;
+                        }
 
-                      const SizedBox(height: 14),
-
-                      // =========================
-                      // LOCATION
-                      // =========================
-
-                      TextField(
-                        controller:
-                        locationController,
-                        decoration:
-                        const InputDecoration(
-                          labelText: 'Location',
-                          hintText:
-                          'Example: Exit A / Platform 2',
-                          prefixIcon: Icon(
-                            Icons.location_on,
-                          ),
-                          border:
-                          OutlineInputBorder(),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // =========================
-                      // STATUS
-                      // =========================
-
-                      DropdownButtonFormField<String>(
-                        initialValue:
-                        selectedStatus,
-                        isExpanded: true,
-                        decoration:
-                        const InputDecoration(
-                          labelText: 'Status',
-                          prefixIcon: Icon(
-                            Icons.info_outline,
-                          ),
-                          border:
-                          OutlineInputBorder(),
-                        ),
-                        items: statusOptions
-                            .map(
-                              (status) =>
-                              DropdownMenuItem<
-                                  String>(
-                                value: status,
-                                child:
-                                Text(status),
-                              ),
-                        )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-
-                          setDialogState(() {
+                        setDialogState(
+                              () {
                             selectedStatus =
                                 value;
-                          });
-                        },
+                          },
+                        );
+                      },
+                    ),
+
+                    const SizedBox(
+                      height: 12,
+                    ),
+
+                    TextField(
+                      controller:
+                      noteController,
+                      maxLines: 2,
+                      decoration:
+                      const InputDecoration(
+                        labelText:
+                        'Accessibility Note',
+                        border:
+                        OutlineInputBorder(),
                       ),
+                    ),
 
-                      const SizedBox(height: 14),
-
-                      // =========================
-                      // NOTE
-                      // =========================
-
-                      TextField(
-                        controller:
-                        noteController,
-                        maxLines: 2,
-                        decoration:
-                        const InputDecoration(
-                          labelText:
-                          'Accessibility Note',
-                          hintText:
-                          'Example: Suitable for wheelchair users',
-                          prefixIcon:
-                          Icon(Icons.notes),
-                          border:
-                          OutlineInputBorder(),
-                        ),
+                    SwitchListTile(
+                      contentPadding:
+                      EdgeInsets.zero,
+                      title:
+                      const Text(
+                        'Step-free Access',
                       ),
-
-                      const SizedBox(height: 10),
-
-                      // =========================
-                      // STEP FREE
-                      // =========================
-
-                      SwitchListTile(
-                        contentPadding:
-                        EdgeInsets.zero,
-                        secondary: const Icon(
-                          Icons.accessible,
-                        ),
-                        title: const Text(
-                          'Step-free Access',
-                          style: TextStyle(
-                            fontWeight:
-                            FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: const Text(
-                          'Suitable for wheelchair users',
-                        ),
-                        value: isStepFree,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            isStepFree = value;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
+                      value:
+                      isStepFree,
+                      onChanged:
+                          (value) {
+                        setDialogState(
+                              () {
+                            isStepFree =
+                                value;
+                          },
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
 
               actions: [
                 TextButton(
-                  style: getCancelButtonStyle(),
                   onPressed: () {
                     Navigator.pop(
                       dialogContext,
                     );
                   },
                   child:
-                  const Text('Cancel'),
+                  const Text(
+                    'Cancel',
+                    style:
+                    TextStyle(
+                      color:
+                      Colors.black,
+                    ),
+                  ),
                 ),
 
                 ElevatedButton(
                   style:
-                  getInteractiveButtonStyle(),
-
-                  onPressed: () async {
-                    final String location =
-                    locationController.text
+                  ElevatedButton
+                      .styleFrom(
+                    backgroundColor:
+                    Colors.black,
+                    foregroundColor:
+                    Colors.white,
+                  ),
+                  onPressed:
+                      () async {
+                    final location =
+                    locationController
+                        .text
                         .trim();
 
-                    // =========================
-                    // VALIDATION
-                    // =========================
-
-                    if (location.isEmpty) {
+                    if (location
+                        .isEmpty) {
                       showErrorSnackBar(
-                        'Please enter the facility location.',
-                      );
-                      return;
-                    }
-
-                    if (location.length < 2) {
-                      showErrorSnackBar(
-                        'Please enter a valid location.',
+                        'Please enter facility location.',
                       );
                       return;
                     }
 
                     try {
-                      // =========================
-                      // CREATE
-                      // =========================
-
-                      if (facility == null) {
-                        await db.addFacility(
+                      if (facility ==
+                          null) {
+                        await db
+                            .addFacility(
                           stationName:
                           selectedStation,
                           facilityType:
                           selectedFacilityType,
-                          location: location,
+                          location:
+                          location,
                           status:
                           selectedStatus,
                           accessibilityNote:
-                          noteController.text
+                          noteController
+                              .text
+                              .trim(),
+                          isStepFree:
+                          isStepFree,
+                        );
+                      } else {
+                        await db
+                            .updateFacility(
+                          id:
+                          facility[
+                          'id'],
+                          stationName:
+                          selectedStation,
+                          facilityType:
+                          selectedFacilityType,
+                          location:
+                          location,
+                          status:
+                          selectedStatus,
+                          accessibilityNote:
+                          noteController
+                              .text
                               .trim(),
                           isStepFree:
                           isStepFree,
                         );
                       }
 
-                      // =========================
-                      // UPDATE
-                      // =========================
-
-                      else {
-                        await db.updateFacility(
-                          id: facility['id'],
-                          stationName:
-                          selectedStation,
-                          facilityType:
-                          selectedFacilityType,
-                          location: location,
-                          status:
-                          selectedStatus,
-                          accessibilityNote:
-                          noteController.text
-                              .trim(),
-                          isStepFree:
-                          isStepFree,
-                        );
-                      }
-
-                      if (dialogContext.mounted) {
+                      if (dialogContext
+                          .mounted) {
                         Navigator.pop(
                           dialogContext,
                         );
@@ -866,30 +1045,17 @@ class _StationFacilitiesScreenState
 
                       await loadFacilities();
 
-                      if (!mounted) return;
-
-                      // =========================
-                      // GREEN SUCCESS
-                      // =========================
-
-                      if (facility == null) {
-                        showSuccessSnackBar(
-                          'Facility added successfully.',
-                        );
-                      } else {
-                        showSuccessSnackBar(
-                          'Facility updated successfully.',
-                        );
-                      }
+                      showSuccessSnackBar(
+                        facility == null
+                            ? 'Facility added successfully.'
+                            : 'Facility updated successfully.',
+                      );
                     } catch (e) {
-                      if (!mounted) return;
-
                       showErrorSnackBar(
-                        'Unable to save facility. Please try again.',
+                        'Unable to save facility.',
                       );
                     }
                   },
-
                   child: Text(
                     facility == null
                         ? 'Add'
@@ -904,30 +1070,25 @@ class _StationFacilitiesScreenState
     );
   }
 
-  // =========================================================
-  // DELETE
-  // =========================================================
-
   Future<void> confirmDelete(
       Map<String, dynamic> facility,
       ) async {
     final bool? confirmed =
     await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
+      builder: (
+          dialogContext,
+          ) {
         return AlertDialog(
-          title:
-          const Text('Delete Facility'),
-
+          title: const Text(
+            'Delete Facility',
+          ),
           content: Text(
-            'Are you sure you want to delete '
-                '${facility['facility_type']} at '
+            'Delete ${facility['facility_type']} at '
                 '${facility['station_name']}?',
           ),
-
           actions: [
             TextButton(
-              style: getCancelButtonStyle(),
               onPressed: () {
                 Navigator.pop(
                   dialogContext,
@@ -935,12 +1096,24 @@ class _StationFacilitiesScreenState
                 );
               },
               child:
-              const Text('Cancel'),
+              const Text(
+                'Cancel',
+                style:
+                TextStyle(
+                  color:
+                  Colors.black,
+                ),
+              ),
             ),
-
             ElevatedButton(
               style:
-              getInteractiveButtonStyle(),
+              ElevatedButton
+                  .styleFrom(
+                backgroundColor:
+                Colors.black,
+                foregroundColor:
+                Colors.white,
+              ),
               onPressed: () {
                 Navigator.pop(
                   dialogContext,
@@ -948,14 +1121,18 @@ class _StationFacilitiesScreenState
                 );
               },
               child:
-              const Text('Delete'),
+              const Text(
+                'Delete',
+              ),
             ),
           ],
         );
       },
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
 
     try {
       await db.deleteFacility(
@@ -964,100 +1141,92 @@ class _StationFacilitiesScreenState
 
       await loadFacilities();
 
-      if (!mounted) return;
-
       showSuccessSnackBar(
         'Facility deleted successfully.',
       );
     } catch (e) {
-      if (!mounted) return;
-
       showErrorSnackBar(
         'Unable to delete facility.',
       );
     }
   }
 
-  // =========================================================
-  // MAIN UI
-  // =========================================================
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+      BuildContext context,
+      ) {
     return Scaffold(
       appBar: AppBar(
         title:
-        const Text('Station Facilities'),
-      ),
-
-      // =====================================================
-      // ADD BUTTON
-      // =====================================================
-
-      floatingActionButton:
-      FloatingActionButton.extended(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        onPressed: () {
-          showFacilityForm();
-        },
-        icon: const Icon(Icons.add),
-        label: const Text(
-          'Add Facility',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
+        const Text(
+          'Station Accessibility',
         ),
+
+        actions: [
+          IconButton(
+            tooltip:
+            'Manage Facilities',
+            icon:
+            const Icon(
+              Icons.settings,
+            ),
+            onPressed:
+            showManageFacilities,
+          ),
+        ],
       ),
 
       body: Column(
         children: [
-          // =================================================
-          // SEARCH
-          // =================================================
-
           Padding(
-            padding: const EdgeInsets.fromLTRB(
+            padding:
+            const EdgeInsets
+                .fromLTRB(
               16,
               16,
               16,
               8,
             ),
             child: TextField(
-              controller: searchController,
+              controller:
+              searchController,
               onChanged: (_) {
                 setState(() {});
-
                 loadFacilities();
               },
-              decoration: InputDecoration(
+              decoration:
+              InputDecoration(
                 hintText:
                 'Search station or facility...',
                 prefixIcon:
-                const Icon(Icons.search),
-
+                const Icon(
+                  Icons.search,
+                ),
                 suffixIcon:
                 searchController
                     .text
                     .isNotEmpty
                     ? IconButton(
-                  icon: const Icon(
-                    Icons.clear,
-                  ),
-                  onPressed: () {
+                  onPressed:
+                      () {
                     searchController
                         .clear();
-
-                    setState(() {});
-
+                    setState(
+                          () {},
+                    );
                     loadFacilities();
                   },
+                  icon:
+                  const Icon(
+                    Icons.clear,
+                  ),
                 )
                     : null,
-
-                border: OutlineInputBorder(
+                border:
+                OutlineInputBorder(
                   borderRadius:
-                  BorderRadius.circular(
+                  BorderRadius
+                      .circular(
                     14,
                   ),
                 ),
@@ -1065,15 +1234,13 @@ class _StationFacilitiesScreenState
             ),
           ),
 
-          // =================================================
-          // FILTER CHIPS
-          // =================================================
-
           SizedBox(
             height: 50,
-            child: ListView.separated(
+            child:
+            ListView.separated(
               padding:
-              const EdgeInsets.symmetric(
+              const EdgeInsets
+                  .symmetric(
                 horizontal: 16,
               ),
               scrollDirection:
@@ -1081,48 +1248,56 @@ class _StationFacilitiesScreenState
               itemCount:
               facilityTypes.length,
               separatorBuilder:
-                  (context, index) =>
+                  (
+                  context,
+                  index,
+                  ) =>
               const SizedBox(
                 width: 8,
               ),
               itemBuilder:
-                  (context, index) {
+                  (
+                  context,
+                  index,
+                  ) {
                 final type =
-                facilityTypes[index];
+                facilityTypes[
+                index];
 
-                final bool isSelected =
-                    selectedType == type;
+                final selected =
+                    selectedType ==
+                        type;
 
                 return ChoiceChip(
                   label: Text(
                     type,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.black,
-                      fontWeight:
-                      FontWeight.w500,
+                    style:
+                    TextStyle(
+                      color:
+                      selected
+                          ? Colors
+                          .white
+                          : Colors
+                          .black,
                     ),
                   ),
-
-                  selected: isSelected,
-
+                  selected:
+                  selected,
                   selectedColor:
                   Colors.black,
-
                   backgroundColor:
                   Colors.white,
-
-                  side: const BorderSide(
-                    color: Colors.black,
-                  ),
-
                   checkmarkColor:
                   Colors.white,
-
+                  side:
+                  const BorderSide(
+                    color:
+                    Colors.black,
+                  ),
                   onSelected: (_) {
                     setState(() {
-                      selectedType = type;
+                      selectedType =
+                          type;
                     });
 
                     loadFacilities();
@@ -1132,54 +1307,63 @@ class _StationFacilitiesScreenState
             ),
           ),
 
-          // =================================================
-          // STEP FREE FILTER
-          // =================================================
-
           SwitchListTile(
             secondary:
-            const Icon(Icons.accessible),
-            title: const Text(
+            const Icon(
+              Icons.accessible,
+            ),
+            title:
+            const Text(
               'Step-free access only',
-              style: TextStyle(
+              style:
+              TextStyle(
                 fontWeight:
                 FontWeight.w600,
               ),
             ),
-            subtitle: const Text(
-              'Show facilities suitable for a step-free journey',
+            subtitle:
+            const Text(
+              'Show facilities suitable for accessible journeys',
             ),
-            value: stepFreeOnly,
-            onChanged: (value) {
+            value:
+            stepFreeOnly,
+            onChanged:
+                (value) {
               setState(() {
-                stepFreeOnly = value;
+                stepFreeOnly =
+                    value;
               });
 
               loadFacilities();
             },
           ),
 
-          const Divider(height: 1),
-
-          // =================================================
-          // LIST
-          // =================================================
+          const Divider(
+            height: 1,
+          ),
 
           Expanded(
-            child: facilities.isEmpty
+            child:
+            facilities.isEmpty
                 ? const Center(
-              child: Column(
+              child:
+              Column(
                 mainAxisAlignment:
                 MainAxisAlignment
                     .center,
                 children: [
                   Icon(
-                    Icons.search_off,
-                    size: 60,
+                    Icons
+                        .accessible_forward,
+                    size:
+                    60,
                     color:
                     Colors.grey,
                   ),
-                  SizedBox(height: 12),
+                  SizedBox(
+                    height:
+                    12,
+                  ),
                   Text(
                     'No matching facilities found',
                   ),
@@ -1188,118 +1372,126 @@ class _StationFacilitiesScreenState
             )
                 : ListView.builder(
               padding:
-              const EdgeInsets.all(
+              const EdgeInsets
+                  .all(
                 12,
               ),
               itemCount:
-              facilities.length,
+              facilities
+                  .length,
               itemBuilder:
-                  (context, index) {
+                  (
+                  context,
+                  index,
+                  ) {
                 final facility =
-                facilities[index];
+                facilities[
+                index];
 
-                final bool stepFree =
+                final bool
+                stepFree =
                     facility[
                     'is_step_free'] ==
                         1;
 
-                final String status =
-                facility['status']
+                final String
+                status =
+                facility[
+                'status']
                     .toString();
 
-                final bool available =
+                final bool
+                available =
                     status
                         .toLowerCase() ==
                         'available';
 
                 return Card(
-                  elevation: 2,
                   margin:
                   const EdgeInsets
                       .only(
-                    bottom: 10,
+                    bottom:
+                    10,
                   ),
-                  child: InkWell(
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                      12,
-                    ),
+                  child:
+                  InkWell(
                     onTap: () {
                       showFacilityDetails(
                         facility,
                       );
                     },
-                    child: Padding(
+                    child:
+                    Padding(
                       padding:
                       const EdgeInsets
                           .all(
-                        12,
+                        14,
                       ),
-                      child: Row(
+                      child:
+                      Row(
                         children: [
                           CircleAvatar(
                             backgroundColor:
-                            Colors.grey
-                                .shade200,
-                            child: Icon(
+                            Colors
+                                .black,
+                            child:
+                            Icon(
                               getFacilityIcon(
-                                facility[
-                                'facility_type']
+                                facility['facility_type']
                                     .toString(),
                               ),
                               color:
-                              Colors.black,
+                              Colors.white,
                             ),
                           ),
 
                           const SizedBox(
-                            width: 12,
+                            width:
+                            12,
                           ),
 
                           Expanded(
-                            child: Column(
+                            child:
+                            Column(
                               crossAxisAlignment:
                               CrossAxisAlignment
                                   .start,
                               children: [
                                 Text(
-                                  facility[
-                                  'station_name']
+                                  facility['station_name']
                                       .toString(),
                                   style:
                                   const TextStyle(
                                     fontSize:
                                     17,
                                     fontWeight:
-                                    FontWeight
-                                        .bold,
+                                    FontWeight.bold,
                                   ),
                                 ),
 
-                                const SizedBox(
-                                  height: 4,
-                                ),
-
                                 Text(
-                                  facility[
-                                  'facility_type']
+                                  facility['facility_type']
                                       .toString(),
                                 ),
 
                                 Text(
-                                  'Location: '
-                                      '${facility['location']}',
+                                  facility['location']
+                                      .toString(),
+                                  style:
+                                  const TextStyle(
+                                    color:
+                                    Colors.grey,
+                                  ),
                                 ),
 
                                 const SizedBox(
-                                  height: 8,
+                                  height:
+                                  8,
                                 ),
 
                                 Wrap(
-                                  spacing: 8,
-                                  runSpacing:
-                                  4,
+                                  spacing:
+                                  8,
                                   children: [
                                     Chip(
                                       avatar:
@@ -1307,24 +1499,23 @@ class _StationFacilitiesScreenState
                                         available
                                             ? Icons.check_circle
                                             : Icons.warning,
+                                        color:
+                                        available ? Colors.green : Colors.red,
                                         size:
                                         18,
-                                        color: available
-                                            ? Colors.green
-                                            : Colors.red,
                                       ),
                                       label:
                                       Text(
                                         status,
                                       ),
                                     ),
-
                                     if (stepFree)
                                       const Chip(
                                         avatar:
                                         Icon(
                                           Icons.accessible,
-                                          size: 18,
+                                          size:
+                                          18,
                                         ),
                                         label:
                                         Text(
@@ -1337,43 +1528,9 @@ class _StationFacilitiesScreenState
                             ),
                           ),
 
-                          Column(
-                            children: [
-                              IconButton(
-                                tooltip:
-                                'Edit',
-                                style:
-                                getIconButtonStyle(),
-                                icon:
-                                const Icon(
-                                  Icons.edit,
-                                ),
-                                onPressed:
-                                    () {
-                                  showFacilityForm(
-                                    facility:
-                                    facility,
-                                  );
-                                },
-                              ),
-
-                              IconButton(
-                                tooltip:
-                                'Delete',
-                                style:
-                                getIconButtonStyle(),
-                                icon:
-                                const Icon(
-                                  Icons.delete,
-                                ),
-                                onPressed:
-                                    () {
-                                  confirmDelete(
-                                    facility,
-                                  );
-                                },
-                              ),
-                            ],
+                          const Icon(
+                            Icons
+                                .chevron_right,
                           ),
                         ],
                       ),

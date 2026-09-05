@@ -7,7 +7,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
 class StationMapScreen extends StatefulWidget {
-  const StationMapScreen({super.key});
+  final String? initialStation;
+
+  const StationMapScreen({
+    super.key,
+    this.initialStation,
+  });
 
   @override
   State<StationMapScreen> createState() =>
@@ -37,73 +42,39 @@ class _StationMapScreenState extends State<StationMapScreen> {
 
   Marker? _searchedPlaceMarker;
 
-  // =========================================================
-  // STATION LOCATIONS
-  // =========================================================
-
   final Map<String, LatLng> stationLocations = {
-    'KL Sentral': const LatLng(
-      3.1343,
-      101.6861,
-    ),
-    'Pasar Seni': const LatLng(
-      3.1424,
-      101.6953,
-    ),
-    'Bukit Bintang': const LatLng(
-      3.1467,
-      101.7107,
-    ),
-    'Muzium Negara': const LatLng(
-      3.1374,
-      101.6871,
-    ),
-    'Masjid Jamek': const LatLng(
-      3.1492,
-      101.6966,
-    ),
-    'Titiwangsa': const LatLng(
-      3.1735,
-      101.6954,
-    ),
-    'Maluri': const LatLng(
-      3.1234,
-      101.7270,
-    ),
+    'KL Sentral': const LatLng(3.1343, 101.6861),
+    'Pasar Seni': const LatLng(3.1424, 101.6953),
+    'Bukit Bintang': const LatLng(3.1467, 101.7107),
+    'Muzium Negara': const LatLng(3.1374, 101.6871),
+    'Masjid Jamek': const LatLng(3.1492, 101.6966),
+    'Titiwangsa': const LatLng(3.1735, 101.6954),
+    'Maluri': const LatLng(3.1234, 101.7270),
   };
 
-  // =========================================================
-  // STATION MARKERS
-  // =========================================================
-
-  Set<Marker> get _stationMarkers {
-    return stationLocations.entries.map(
-          (station) {
-        return Marker(
-          markerId: MarkerId(
-            station.key,
-          ),
-          position: station.value,
-          infoWindow: InfoWindow(
-            title: station.key,
-            snippet:
-            'Tap to view station location',
-          ),
-          onTap: () {
-            _showStationDetails(
-              station.key,
-              station.value,
-            );
-          },
-        );
-      },
-    ).toSet();
+  @override
+  void initState() {
+    super.initState();
   }
 
-  // =========================================================
-  // ALL MARKERS
-  // Station markers + searched Google Place
-  // =========================================================
+  Set<Marker> get _stationMarkers {
+    return stationLocations.entries.map((station) {
+      return Marker(
+        markerId: MarkerId(station.key),
+        position: station.value,
+        infoWindow: InfoWindow(
+          title: station.key,
+          snippet: 'Tap marker to view station',
+        ),
+        onTap: () {
+          _showStationDetails(
+            station.key,
+            station.value,
+          );
+        },
+      );
+    }).toSet();
+  }
 
   Set<Marker> get _allMarkers {
     final markers = <Marker>{
@@ -111,16 +82,42 @@ class _StationMapScreenState extends State<StationMapScreen> {
     };
 
     if (_searchedPlaceMarker != null) {
-      markers.add(
-        _searchedPlaceMarker!,
-      );
+      markers.add(_searchedPlaceMarker!);
     }
 
     return markers;
   }
 
+  void _focusInitialStation() {
+    final stationName = widget.initialStation;
+
+    if (stationName == null) return;
+
+    final position = stationLocations[stationName];
+
+    if (position == null) return;
+
+    Future.delayed(
+      const Duration(milliseconds: 500),
+          () {
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            position,
+            17,
+          ),
+        );
+
+        if (mounted) {
+          _showSuccessSnackBar(
+            '$stationName shown on map.',
+          );
+        }
+      },
+    );
+  }
+
   // =========================================================
-  // GOOGLE PLACES AUTOCOMPLETE
+  // GOOGLE PLACES
   // =========================================================
 
   void _onSearchChanged(String value) {
@@ -138,27 +135,20 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
 
     _debounce = Timer(
-      const Duration(
-        milliseconds: 500,
-      ),
+      const Duration(milliseconds: 500),
           () {
         _searchPlaces(query);
       },
     );
   }
 
-  Future<void> _searchPlaces(
-      String query,
-      ) async {
+  Future<void> _searchPlaces(String query) async {
     if (_placesApiKey.isEmpty) {
       _showErrorSnackBar(
         'Google Places API key is not configured.',
       );
-
       return;
     }
-
-    if (!mounted) return;
 
     setState(() {
       _searchingPlaces = true;
@@ -172,28 +162,16 @@ class _StationMapScreenState extends State<StationMapScreen> {
       final response = await http.post(
         url,
         headers: {
-          'Content-Type':
-          'application/json',
-          'X-Goog-Api-Key':
-          _placesApiKey,
-
-          // Only request the fields
-          // needed for autocomplete.
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _placesApiKey,
           'X-Goog-FieldMask':
           'suggestions.placePrediction.placeId,'
               'suggestions.placePrediction.text.text',
         },
         body: jsonEncode({
           'input': query,
-
-          // Only Malaysia results
-          'includedRegionCodes': [
-            'my',
-          ],
-
+          'includedRegionCodes': ['my'],
           'languageCode': 'en',
-
-          // Prefer Kuala Lumpur area
           'locationBias': {
             'circle': {
               'center': {
@@ -209,47 +187,31 @@ class _StationMapScreenState extends State<StationMapScreen> {
       if (response.statusCode < 200 ||
           response.statusCode >= 300) {
         debugPrint(
-          'Places autocomplete error: '
-              '${response.statusCode}',
+          'Places autocomplete error: ${response.statusCode}',
         );
-
-        debugPrint(
-          response.body,
-        );
-
-        if (!mounted) return;
-
-        setState(() {
-          _suggestions = [];
-        });
+        debugPrint(response.body);
 
         _showErrorSnackBar(
           'Unable to search places.',
         );
-
         return;
       }
 
       final Map<String, dynamic> data =
-      jsonDecode(
-        response.body,
-      );
+      jsonDecode(response.body);
 
       final dynamic rawSuggestions =
       data['suggestions'];
 
-      final List<_PlaceSuggestion>
-      newSuggestions = [];
+      final List<_PlaceSuggestion> results = [];
 
       if (rawSuggestions is List) {
-        for (final item
-        in rawSuggestions) {
-          if (item
-          is! Map<String, dynamic>) {
+        for (final item in rawSuggestions) {
+          if (item is! Map<String, dynamic>) {
             continue;
           }
 
-          final dynamic prediction =
+          final prediction =
           item['placePrediction'];
 
           if (prediction
@@ -262,13 +224,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   ?.toString() ??
                   '';
 
-          String description = '';
-
           final dynamic text =
           prediction['text'];
 
-          if (text
-          is Map<String, dynamic>) {
+          String description = '';
+
+          if (text is Map<String, dynamic>) {
             description =
                 text['text']
                     ?.toString() ??
@@ -277,11 +238,10 @@ class _StationMapScreenState extends State<StationMapScreen> {
 
           if (placeId.isNotEmpty &&
               description.isNotEmpty) {
-            newSuggestions.add(
+            results.add(
               _PlaceSuggestion(
                 placeId: placeId,
-                description:
-                description,
+                description: description,
               ),
             );
           }
@@ -291,19 +251,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
       if (!mounted) return;
 
       setState(() {
-        _suggestions =
-            newSuggestions;
+        _suggestions = results;
       });
     } catch (e) {
       debugPrint(
         'Places search error: $e',
       );
-
-      if (!mounted) return;
-
-      setState(() {
-        _suggestions = [];
-      });
 
       _showErrorSnackBar(
         'Unable to search places.',
@@ -317,10 +270,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  // =========================================================
-  // SELECT GOOGLE PLACE
-  // =========================================================
-
   Future<void> _selectPlace(
       _PlaceSuggestion suggestion,
       ) async {
@@ -328,7 +277,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
       _showErrorSnackBar(
         'Google Places API key is not configured.',
       );
-
       return;
     }
 
@@ -348,12 +296,8 @@ class _StationMapScreenState extends State<StationMapScreen> {
       final response = await http.get(
         url,
         headers: {
-          'Content-Type':
-          'application/json',
-
-          'X-Goog-Api-Key':
-          _placesApiKey,
-
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _placesApiKey,
           'X-Goog-FieldMask':
           'location,displayName,formattedAddress',
         },
@@ -362,25 +306,18 @@ class _StationMapScreenState extends State<StationMapScreen> {
       if (response.statusCode < 200 ||
           response.statusCode >= 300) {
         debugPrint(
-          'Place details error: '
-              '${response.statusCode}',
+          'Place details error: ${response.statusCode}',
         );
-
-        debugPrint(
-          response.body,
-        );
+        debugPrint(response.body);
 
         _showErrorSnackBar(
           'Unable to open this place.',
         );
-
         return;
       }
 
       final Map<String, dynamic> data =
-      jsonDecode(
-        response.body,
-      );
+      jsonDecode(response.body);
 
       final dynamic location =
       data['location'];
@@ -388,28 +325,24 @@ class _StationMapScreenState extends State<StationMapScreen> {
       if (location
       is! Map<String, dynamic>) {
         _showErrorSnackBar(
-          'Location information is unavailable.',
+          'Location information unavailable.',
         );
-
         return;
       }
 
       final double? latitude =
-      (location['latitude']
-      as num?)
+      (location['latitude'] as num?)
           ?.toDouble();
 
       final double? longitude =
-      (location['longitude']
-      as num?)
+      (location['longitude'] as num?)
           ?.toDouble();
 
       if (latitude == null ||
           longitude == null) {
         _showErrorSnackBar(
-          'Location information is unavailable.',
+          'Location information unavailable.',
         );
-
         return;
       }
 
@@ -451,25 +384,21 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _searchedPlaceMarker =
             Marker(
               markerId: MarkerId(
-                'google_place_'
-                    '${suggestion.placeId}',
+                'searched_${suggestion.placeId}',
               ),
               position: placePosition,
+              icon:
+              BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure,
+              ),
               infoWindow: InfoWindow(
                 title: displayName,
-                snippet: address.isEmpty
-                    ? 'Google Place'
-                    : address,
-              ),
-              icon: BitmapDescriptor
-                  .defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure,
+                snippet: address,
               ),
             );
       });
 
-      await _mapController
-          ?.animateCamera(
+      await _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(
           placePosition,
           16,
@@ -496,34 +425,16 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  // =========================================================
-  // CLEAR SEARCH
-  // =========================================================
-
   void _clearSearch() {
     _debounce?.cancel();
 
     _searchController.clear();
-
     _searchFocusNode.unfocus();
 
     setState(() {
       _suggestions = [];
       _searchedPlaceMarker = null;
-      _searchingPlaces = false;
     });
-
-    _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        const CameraPosition(
-          target: LatLng(
-            3.1450,
-            101.7000,
-          ),
-          zoom: 12.5,
-        ),
-      ),
-    );
   }
 
   // =========================================================
@@ -537,33 +448,27 @@ class _StationMapScreenState extends State<StationMapScreen> {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
-      builder: (
-          bottomSheetContext,
-          ) {
+      builder: (bottomSheetContext) {
         return SafeArea(
           child: Padding(
             padding:
-            const EdgeInsets.all(
-              20,
-            ),
+            const EdgeInsets.all(20),
             child: Column(
               mainAxisSize:
               MainAxisSize.min,
               children: [
                 const CircleAvatar(
-                  radius: 28,
+                  radius: 30,
                   backgroundColor:
                   Colors.black,
                   child: Icon(
                     Icons.train,
                     color: Colors.white,
-                    size: 30,
+                    size: 32,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
 
                 Text(
                   stationName,
@@ -575,26 +480,20 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   ),
                 ),
 
-                const SizedBox(
-                  height: 6,
-                ),
+                const SizedBox(height: 4),
 
                 const Text(
                   'Transit Station',
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 SizedBox(
-                  width:
-                  double.infinity,
+                  width: double.infinity,
                   child:
                   ElevatedButton.icon(
                     style:
-                    ElevatedButton
-                        .styleFrom(
+                    ElevatedButton.styleFrom(
                       backgroundColor:
                       Colors.black,
                       foregroundColor:
@@ -615,7 +514,7 @@ class _StationMapScreenState extends State<StationMapScreen> {
                       );
                     },
                     icon: const Icon(
-                      Icons.location_on,
+                      Icons.center_focus_strong,
                     ),
                     label: const Text(
                       'Focus on Station',
@@ -650,7 +549,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _showErrorSnackBar(
           'Please turn on location services.',
         );
-
         return;
       }
 
@@ -673,15 +571,13 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _showErrorSnackBar(
           'Location permission is required.',
         );
-
         return;
       }
 
       if (!mounted) return;
 
       setState(() {
-        _locationPermissionGranted =
-        true;
+        _locationPermissionGranted = true;
       });
 
       final Position position =
@@ -700,15 +596,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
         position.longitude,
       );
 
-      await _mapController
-          ?.animateCamera(
+      await _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(
           currentPosition,
           17,
         ),
       );
-
-      if (!mounted) return;
 
       _showSuccessSnackBar(
         'Current location found.',
@@ -726,46 +619,31 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  // =========================================================
-  // GREEN SNACKBAR
-  // =========================================================
-
   void _showSuccessSnackBar(
       String message,
       ) {
-    if (!mounted) return;
-
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.green,
+        backgroundColor: Colors.green,
         behavior:
         SnackBarBehavior.floating,
-        duration:
-        const Duration(
-          seconds: 2,
-        ),
         content: Row(
           children: [
             const Icon(
               Icons.check_circle,
               color: Colors.white,
             ),
-            const SizedBox(
-              width: 10,
-            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
                 style:
                 const TextStyle(
                   color: Colors.white,
-                  fontWeight:
-                  FontWeight.w600,
                 ),
               ),
             ),
@@ -775,46 +653,31 @@ class _StationMapScreenState extends State<StationMapScreen> {
     );
   }
 
-  // =========================================================
-  // RED SNACKBAR
-  // =========================================================
-
   void _showErrorSnackBar(
       String message,
       ) {
-    if (!mounted) return;
-
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.red,
+        backgroundColor: Colors.red,
         behavior:
         SnackBarBehavior.floating,
-        duration:
-        const Duration(
-          seconds: 3,
-        ),
         content: Row(
           children: [
             const Icon(
               Icons.error,
               color: Colors.white,
             ),
-            const SizedBox(
-              width: 10,
-            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
                 style:
                 const TextStyle(
                   color: Colors.white,
-                  fontWeight:
-                  FontWeight.w600,
                 ),
               ),
             ),
@@ -823,10 +686,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // BUILD
-  // =========================================================
 
   @override
   Widget build(
@@ -834,21 +693,19 @@ class _StationMapScreenState extends State<StationMapScreen> {
       ) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Station Map',
+        title:
+        const Text(
+          'Explore Stations',
         ),
       ),
 
       body: Stack(
         children: [
-          // =================================================
-          // GOOGLE MAP
-          // =================================================
-
           GoogleMap(
             initialCameraPosition:
             const CameraPosition(
-              target: LatLng(
+              target:
+              LatLng(
                 3.1450,
                 101.7000,
               ),
@@ -856,12 +713,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
             ),
 
             markers: _allMarkers,
-
-            mapType:
-            MapType.normal,
-
-            zoomControlsEnabled:
-            true,
 
             myLocationEnabled:
             _locationPermissionGranted,
@@ -873,13 +724,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
                 (controller) {
               _mapController =
                   controller;
+
+              _focusInitialStation();
             },
           ),
 
-          // =================================================
-          // GOOGLE PLACES SEARCH BAR
-          // =================================================
-
+          // SEARCH BAR
           Positioned(
             top: 14,
             left: 14,
@@ -893,29 +743,23 @@ class _StationMapScreenState extends State<StationMapScreen> {
               child: TextField(
                 controller:
                 _searchController,
-
                 focusNode:
                 _searchFocusNode,
-
                 onChanged:
                 _onSearchChanged,
-
                 decoration:
                 InputDecoration(
                   hintText:
                   'Search places in Malaysia...',
-
                   prefixIcon:
                   const Icon(
                     Icons.search,
                   ),
-
                   suffixIcon:
                   _searchingPlaces
                       ? const Padding(
                     padding:
-                    EdgeInsets
-                        .all(
+                    EdgeInsets.all(
                       14,
                     ),
                     child:
@@ -933,8 +777,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
                       .text
                       .isNotEmpty
                       ? IconButton(
-                    tooltip:
-                    'Clear',
                     onPressed:
                     _clearSearch,
                     icon:
@@ -943,11 +785,9 @@ class _StationMapScreenState extends State<StationMapScreen> {
                     ),
                   )
                       : null,
-
                   filled: true,
                   fillColor:
                   Colors.white,
-
                   border:
                   OutlineInputBorder(
                     borderRadius:
@@ -958,40 +798,10 @@ class _StationMapScreenState extends State<StationMapScreen> {
                     borderSide:
                     BorderSide.none,
                   ),
-
-                  enabledBorder:
-                  OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                      14,
-                    ),
-                    borderSide:
-                    BorderSide.none,
-                  ),
-
-                  focusedBorder:
-                  OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                      14,
-                    ),
-                    borderSide:
-                    const BorderSide(
-                      color:
-                      Colors.black,
-                      width: 2,
-                    ),
-                  ),
                 ),
               ),
             ),
           ),
-
-          // =================================================
-          // AUTOCOMPLETE RESULTS
-          // =================================================
 
           if (_suggestions.isNotEmpty)
             Positioned(
@@ -1006,7 +816,8 @@ class _StationMapScreenState extends State<StationMapScreen> {
                 ),
                 clipBehavior:
                 Clip.antiAlias,
-                child: ConstrainedBox(
+                child:
+                ConstrainedBox(
                   constraints:
                   const BoxConstraints(
                     maxHeight: 260,
@@ -1014,8 +825,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   child:
                   ListView.separated(
                     shrinkWrap: true,
-                    padding:
-                    EdgeInsets.zero,
                     itemCount:
                     _suggestions
                         .length,
@@ -1066,11 +875,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
               ),
             ),
 
-          // =================================================
-          // STATION COUNT
-          // Hide while suggestions are open
-          // =================================================
-
           if (_suggestions.isEmpty)
             Positioned(
               top: 78,
@@ -1103,7 +907,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   children: [
                     const Icon(
                       Icons.train,
-                      size: 20,
                       color:
                       Colors.black,
                     ),
@@ -1126,10 +929,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
               ),
             ),
 
-          // =================================================
-          // MY LOCATION
-          // =================================================
-
           Positioned(
             right: 16,
             bottom: 30,
@@ -1138,15 +937,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
                 .extended(
               backgroundColor:
               Colors.black,
-
               foregroundColor:
               Colors.white,
-
               onPressed:
               _gettingLocation
                   ? null
                   : _goToMyLocation,
-
               icon: _gettingLocation
                   ? const SizedBox(
                 width: 20,
@@ -1161,7 +957,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   : const Icon(
                 Icons.my_location,
               ),
-
               label: Text(
                 _gettingLocation
                     ? 'Locating...'
@@ -1174,27 +969,15 @@ class _StationMapScreenState extends State<StationMapScreen> {
     );
   }
 
-  // =========================================================
-  // DISPOSE
-  // =========================================================
-
   @override
   void dispose() {
     _debounce?.cancel();
-
     _searchController.dispose();
-
     _searchFocusNode.dispose();
-
     _mapController?.dispose();
-
     super.dispose();
   }
 }
-
-// ===========================================================
-// GOOGLE PLACE AUTOCOMPLETE MODEL
-// ===========================================================
 
 class _PlaceSuggestion {
   final String placeId;

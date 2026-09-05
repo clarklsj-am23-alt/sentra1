@@ -3,11 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../screens/station_facilities_screen.dart';
 import '../../../screens/station_map_screen.dart';
+import '../../reports/delay_report_screen.dart';
 
 const Color appYellow = Color(0xFFFCEB00);
 
 class JourneyPlannerScreen extends StatefulWidget {
-  const JourneyPlannerScreen({super.key});
+  const JourneyPlannerScreen({
+    super.key,
+  });
 
   @override
   State<JourneyPlannerScreen> createState() =>
@@ -32,7 +35,9 @@ class _JourneyPlannerScreenState
   bool _preferStepFree = true;
   bool _routeGenerated = false;
 
-  void _showError(String message) {
+  void _showError(
+      String message,
+      ) {
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
@@ -76,8 +81,11 @@ class _JourneyPlannerScreenState
   }
 
   int _estimatedMinutes() {
-    final fromIndex = stations.indexOf(_origin);
-    final toIndex = stations.indexOf(_destination);
+    final fromIndex =
+    stations.indexOf(_origin);
+
+    final toIndex =
+    stations.indexOf(_destination);
 
     final distance =
     (fromIndex - toIndex).abs();
@@ -86,10 +94,14 @@ class _JourneyPlannerScreenState
   }
 
   List<String> _buildSimpleRoute() {
-    final fromIndex = stations.indexOf(_origin);
-    final toIndex = stations.indexOf(_destination);
+    final fromIndex =
+    stations.indexOf(_origin);
 
-    if (fromIndex == -1 || toIndex == -1) {
+    final toIndex =
+    stations.indexOf(_destination);
+
+    if (fromIndex == -1 ||
+        toIndex == -1) {
       return [];
     }
 
@@ -98,28 +110,38 @@ class _JourneyPlannerScreenState
         fromIndex,
         toIndex + 1,
       );
-    } else {
-      return stations
-          .sublist(
-        toIndex,
-        fromIndex + 1,
-      )
-          .reversed
-          .toList();
     }
+
+    return stations
+        .sublist(
+      toIndex,
+      fromIndex + 1,
+    )
+        .reversed
+        .toList();
   }
 
   @override
-  Widget build(BuildContext context) {
-    final route = _buildSimpleRoute();
+  Widget build(
+      BuildContext context,
+      ) {
+    final route =
+    _buildSimpleRoute();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trip Planner'),
+        title:
+        const Text(
+          'Trip Planner',
+        ),
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body:
+      SingleChildScrollView(
+        padding:
+        const EdgeInsets.all(
+          16,
+        ),
         child: Column(
           crossAxisAlignment:
           CrossAxisAlignment.start,
@@ -131,19 +153,23 @@ class _JourneyPlannerScreenState
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child:
+                  ElevatedButton.icon(
                     style:
-                    ElevatedButton.styleFrom(
+                    ElevatedButton
+                        .styleFrom(
                       backgroundColor:
                       Colors.black,
                       foregroundColor:
                       appYellow,
                     ),
-                    icon: const Icon(
+                    icon:
+                    const Icon(
                       Icons.accessible,
                       size: 18,
                     ),
-                    label: const Text(
+                    label:
+                    const Text(
                       'Station Accessibility',
                     ),
                     onPressed: () {
@@ -158,22 +184,28 @@ class _JourneyPlannerScreenState
                   ),
                 ),
 
-                const SizedBox(width: 8),
+                const SizedBox(
+                  width: 8,
+                ),
 
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child:
+                  ElevatedButton.icon(
                     style:
-                    ElevatedButton.styleFrom(
+                    ElevatedButton
+                        .styleFrom(
                       backgroundColor:
                       Colors.black,
                       foregroundColor:
                       appYellow,
                     ),
-                    icon: const Icon(
+                    icon:
+                    const Icon(
                       Icons.map,
                       size: 18,
                     ),
-                    label: const Text(
+                    label:
+                    const Text(
                       'Station Map',
                     ),
                     onPressed: () {
@@ -190,7 +222,49 @@ class _JourneyPlannerScreenState
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(
+              height: 10,
+            ),
+
+            // =================================================
+            // REPORT DELAY
+            // =================================================
+
+            SizedBox(
+              width: double.infinity,
+              child:
+              ElevatedButton.icon(
+                style:
+                ElevatedButton
+                    .styleFrom(
+                  backgroundColor:
+                  Colors.black,
+                  foregroundColor:
+                  appYellow,
+                ),
+                icon:
+                const Icon(
+                  Icons.timer,
+                ),
+                label:
+                const Text(
+                  'Report Delay',
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                      const DelayReportScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(
+              height: 16,
+            ),
 
             // =================================================
             // ORIGIN / DESTINATION CARD
@@ -198,18 +272,24 @@ class _JourneyPlannerScreenState
 
             Card(
               color: Colors.black,
-              shape: RoundedRectangleBorder(
+              shape:
+              RoundedRectangleBorder(
                 borderRadius:
-                BorderRadius.circular(16),
+                BorderRadius.circular(
+                  16,
+                ),
               ),
               child: Padding(
                 padding:
-                const EdgeInsets.all(16),
+                const EdgeInsets.all(
+                  16,
+                ),
                 child: Column(
                   children: [
                     DropdownButtonFormField<
                         String>(
-                      initialValue: _origin,
+                      initialValue:
+                      _origin,
                       dropdownColor:
                       Colors.black,
                       style:
@@ -250,24 +330,29 @@ class _JourneyPlannerScreenState
                           ),
                         ),
                       ),
-                      items: stations.map(
+                      items:
+                      stations.map(
                             (station) {
                           return DropdownMenuItem<
                               String>(
                             value: station,
-                            child: Text(
+                            child:
+                            Text(
                               station,
                             ),
                           );
                         },
                       ).toList(),
-                      onChanged: (value) {
-                        if (value == null) {
+                      onChanged:
+                          (value) {
+                        if (value ==
+                            null) {
                           return;
                         }
 
                         setState(() {
-                          _origin = value;
+                          _origin =
+                              value;
                           _routeGenerated =
                           false;
                         });
@@ -322,19 +407,23 @@ class _JourneyPlannerScreenState
                           ),
                         ),
                       ),
-                      items: stations.map(
+                      items:
+                      stations.map(
                             (station) {
                           return DropdownMenuItem<
                               String>(
                             value: station,
-                            child: Text(
+                            child:
+                            Text(
                               station,
                             ),
                           );
                         },
                       ).toList(),
-                      onChanged: (value) {
-                        if (value == null) {
+                      onChanged:
+                          (value) {
+                        if (value ==
+                            null) {
                           return;
                         }
 
@@ -357,16 +446,19 @@ class _JourneyPlannerScreenState
                           .spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
+                          child:
+                          Text(
                             'Require Step-Free Journey',
                             style:
                             GoogleFonts.dmSans(
                               color:
                               Colors.white,
-                              fontSize: 13,
+                              fontSize:
+                              13,
                             ),
                           ),
                         ),
+
                         Switch(
                           value:
                           _preferStepFree,
@@ -419,7 +511,9 @@ class _JourneyPlannerScreenState
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(
+              height: 20,
+            ),
 
             // =================================================
             // ROUTE RESULT
@@ -435,25 +529,33 @@ class _JourneyPlannerScreenState
               ),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             if (!_routeGenerated)
               Card(
-                child: Padding(
+                child:
+                Padding(
                   padding:
                   const EdgeInsets
-                      .all(20),
+                      .all(
+                    20,
+                  ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.route,
                         size: 32,
                       ),
+
                       const SizedBox(
                         width: 12,
                       ),
+
                       Expanded(
-                        child: Text(
+                        child:
+                        Text(
                           'Choose your origin and destination, then tap Find Route.',
                           style:
                           GoogleFonts
@@ -466,7 +568,8 @@ class _JourneyPlannerScreenState
               )
             else
               Card(
-                color: Colors.white,
+                color:
+                Colors.white,
                 elevation: 3,
                 shape:
                 RoundedRectangleBorder(
@@ -475,10 +578,13 @@ class _JourneyPlannerScreenState
                     12,
                   ),
                 ),
-                child: Padding(
+                child:
+                Padding(
                   padding:
                   const EdgeInsets
-                      .all(16),
+                      .all(
+                    16,
+                  ),
                   child: Column(
                     crossAxisAlignment:
                     CrossAxisAlignment
@@ -493,7 +599,8 @@ class _JourneyPlannerScreenState
                             padding:
                             const EdgeInsets
                                 .symmetric(
-                              horizontal: 10,
+                              horizontal:
+                              10,
                               vertical: 5,
                             ),
                             decoration:
@@ -506,7 +613,8 @@ class _JourneyPlannerScreenState
                                 6,
                               ),
                             ),
-                            child: Text(
+                            child:
+                            Text(
                               '${_estimatedMinutes()} Mins Estimated',
                               style:
                               GoogleFonts
@@ -527,7 +635,8 @@ class _JourneyPlannerScreenState
                                 Icons.accessible,
                                 size: 16,
                               ),
-                              label: Text(
+                              label:
+                              Text(
                                 'Step-Free',
                                 style:
                                 GoogleFonts
@@ -563,8 +672,10 @@ class _JourneyPlannerScreenState
                         const SizedBox(
                           height: 14,
                         ),
+
                         _buildRouteStep(
-                          number: i + 1,
+                          number:
+                          i + 1,
                           icon:
                           Icons.train,
                           title:
@@ -599,7 +710,9 @@ class _JourneyPlannerScreenState
                         Container(
                           padding:
                           const EdgeInsets
-                              .all(12),
+                              .all(
+                            12,
+                          ),
                           decoration:
                           BoxDecoration(
                             color:
@@ -623,11 +736,14 @@ class _JourneyPlannerScreenState
                               const Icon(
                                 Icons.accessible,
                               ),
+
                               const SizedBox(
                                 width: 10,
                               ),
+
                               Expanded(
-                                child: Text(
+                                child:
+                                Text(
                                   'Step-free preference enabled. Check station accessibility information for lift, ramp and accessible gate availability.',
                                   style:
                                   GoogleFonts
@@ -760,14 +876,18 @@ class _JourneyPlannerScreenState
           ),
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(
+          width: 12,
+        ),
 
         Icon(
           icon,
           size: 22,
         ),
 
-        const SizedBox(width: 10),
+        const SizedBox(
+          width: 10,
+        ),
 
         Expanded(
           child: Column(
@@ -783,9 +903,11 @@ class _JourneyPlannerScreenState
                   fontSize: 15,
                 ),
               ),
+
               const SizedBox(
                 height: 2,
               ),
+
               Text(
                 subtitle,
                 style:

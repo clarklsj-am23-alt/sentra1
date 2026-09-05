@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../database/station_facilities_database.dart';
 import 'station_map_screen.dart';
+import '../features/reports/facility_report_screen.dart';
 
 class StationFacilitiesScreen
     extends StatefulWidget {
@@ -433,8 +433,19 @@ class _StationFacilitiesScreenState
                           bottomSheetContext,
                         );
 
-                        showSuccessSnackBar(
-                          'Report function will connect to cloud reports.',
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                FacilityReportScreen(
+                                  initialStation:
+                                  stationName,
+                                  initialFacilityType:
+                                  facility[
+                                  'facility_type']
+                                      .toString(),
+                                ),
+                          ),
                         );
                       },
                       icon: const Icon(

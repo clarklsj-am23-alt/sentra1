@@ -337,11 +337,22 @@ class _MainNavigationShellState
       BuildContext context,
       ) {
     return Scaffold(
-      body:
-      _screens[_currentIndex],
+      appBar: AppBar(
+        title: const Text('Sentra1'),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+            },
+          ),
+        ],
+      ),
 
-      bottomNavigationBar:
-      NavigationBar(
+      body: _screens[_currentIndex],
+
+      bottomNavigationBar: NavigationBar(
         selectedIndex:
         _currentIndex,
 

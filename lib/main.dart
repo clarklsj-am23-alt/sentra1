@@ -1,50 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'features/user_management/screens/login_screen.dart';
-
-// Tab 1: Explore Map (Jia Cheng)
 import 'features/stations_nearby/screens/map_home_screen.dart';
-
-// Tab 2: Trip Planner (Tham)
 import 'features/station_search/screens/journey_planner_screen.dart';
-
-// Tab 3: Schedules & Cards (Clark)
 import 'features/transit_card/screens/transit_dashboard_screen.dart';
 import 'features/user_management/screens/user_profile_screen.dart';
 
 const Color appYellow = Color(0xFFFCEB00);
 
-// =============================================================
 // SUPABASE CONFIGURATION
-// =============================================================
 const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co';
 const String supabaseKey = 'sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
 
-// =============================================================
-// MAIN
-// =============================================================
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (supabaseUrl.isEmpty || supabaseKey.isEmpty) {
-    throw Exception(
-      'Supabase configuration is missing. '
-          'Please provide SUPABASE_URL and '
-          'SUPABASE_PUBLISHABLE_KEY using --dart-define.',
-    );
-  }
-
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseKey,
+  );
 
   runApp(const Sentra1App());
 }
 
 final supabase = Supabase.instance.client;
 
-// =============================================================
-// APP
-// =============================================================
 class Sentra1App extends StatelessWidget {
   const Sentra1App({super.key});
 
@@ -124,9 +106,6 @@ class Sentra1App extends StatelessWidget {
   }
 }
 
-// =============================================================
-// AUTH GATE
-// =============================================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -156,9 +135,6 @@ class _AuthGateState extends State<AuthGate> {
   }
 }
 
-// =============================================================
-// MAIN NAVIGATION
-// =============================================================
 class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key, required this.user});
 
@@ -170,22 +146,15 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
-
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     _screens = [
-      // Jia Cheng
       MapHomeScreen(user: widget.user),
-
-      // Tham
       const JourneyPlannerScreen(),
-
-      // Clark
       const TransitDashboardScreen(),
-
       UserProfileScreen(user: widget.user, onPreferenceChanged: (_) {}),
     ];
   }

@@ -213,10 +213,7 @@ class _DelayReportScreenState
                   true,
                 );
               },
-              child:
-              const Text(
-                'Delete',
-              ),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -228,56 +225,31 @@ class _DelayReportScreenState
     }
 
     try {
-      await _reportService
-          .deleteDelayReport(
-        report['id'],
-      );
+      await _reportService.deleteDelayReport(report['id']);
 
-      _showSuccess(
-        'Delay report deleted successfully.',
-      );
+      _showSuccess('Delay report deleted successfully.');
 
       await _loadReports();
     } catch (e) {
-      _showError(
-        'Unable to delete delay report.',
-      );
+      _showError('Unable to delete delay report.');
     }
   }
 
-  void _showSuccess(
-      String message,
-      ) {
+  void _showSuccess(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.green,
-        behavior:
-        SnackBarBehavior.floating,
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-            ),
-            const SizedBox(
-              width: 10,
-            ),
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color:
-                  Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -285,39 +257,21 @@ class _DelayReportScreenState
     );
   }
 
-  void _showError(
-      String message,
-      ) {
+  void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.red,
-        behavior:
-        SnackBarBehavior.floating,
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.error,
-              color: Colors.white,
-            ),
-            const SizedBox(
-              width: 10,
-            ),
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color:
-                  Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -326,233 +280,124 @@ class _DelayReportScreenState
   }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title:
-        const Text(
-          'Report Delay',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Report Delay')),
 
-      body:
-      RefreshIndicator(
-        onRefresh:
-        _loadReports,
+      body: RefreshIndicator(
+        onRefresh: _loadReports,
 
-        child:
-        ListView(
-          padding:
-          const EdgeInsets.all(
-            16,
-          ),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
             Card(
-              child:
-              Padding(
-                padding:
-                const EdgeInsets
-                    .all(
-                  16,
-                ),
-                child:
-                Column(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   children: [
-                    DropdownButtonFormField<
-                        String>(
-                      initialValue:
-                      _selectedStation,
-                      isExpanded:
-                      true,
-                      decoration:
-                      const InputDecoration(
-                        labelText:
-                        'Station',
-                        prefixIcon:
-                        Icon(
-                          Icons.train,
-                        ),
-                        border:
-                        OutlineInputBorder(),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedStation,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Station',
+                        prefixIcon: Icon(Icons.train),
+                        border: OutlineInputBorder(),
                       ),
-                      items:
-                      stations.map(
-                            (station) {
-                          return DropdownMenuItem<
-                              String>(
-                            value:
-                            station,
-                            child:
-                            Text(
-                              station,
-                            ),
-                          );
-                        },
-                      ).toList(),
-                      onChanged:
-                          (value) {
-                        if (value ==
-                            null) {
+                      items: stations.map((station) {
+                        return DropdownMenuItem<String>(
+                          value: station,
+                          child: Text(station),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value == null) {
                           return;
                         }
 
                         setState(() {
-                          _selectedStation =
-                              value;
+                          _selectedStation = value;
                         });
                       },
                     ),
 
-                    const SizedBox(
-                      height: 14,
-                    ),
+                    const SizedBox(height: 14),
 
-                    DropdownButtonFormField<
-                        String>(
-                      initialValue:
-                      _selectedLine,
-                      isExpanded:
-                      true,
-                      decoration:
-                      const InputDecoration(
-                        labelText:
-                        'Transit Line',
-                        prefixIcon:
-                        Icon(
-                          Icons.alt_route,
-                        ),
-                        border:
-                        OutlineInputBorder(),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedLine,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Transit Line',
+                        prefixIcon: Icon(Icons.alt_route),
+                        border: OutlineInputBorder(),
                       ),
-                      items:
-                      lines.map(
-                            (line) {
-                          return DropdownMenuItem<
-                              String>(
-                            value:
-                            line,
-                            child:
-                            Text(
-                              line,
-                            ),
-                          );
-                        },
-                      ).toList(),
-                      onChanged:
-                          (value) {
-                        if (value ==
-                            null) {
+                      items: lines.map((line) {
+                        return DropdownMenuItem<String>(
+                          value: line,
+                          child: Text(line),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value == null) {
                           return;
                         }
 
                         setState(() {
-                          _selectedLine =
-                              value;
+                          _selectedLine = value;
                         });
                       },
                     ),
 
-                    const SizedBox(
-                      height: 14,
-                    ),
+                    const SizedBox(height: 14),
 
                     TextField(
-                      controller:
-                      _delayController,
-                      keyboardType:
-                      TextInputType.number,
-                      decoration:
-                      const InputDecoration(
-                        labelText:
-                        'Delay Minutes',
-                        hintText:
-                        'Example: 15',
-                        prefixIcon:
-                        Icon(
-                          Icons.timer,
-                        ),
-                        suffixText:
-                        'min',
-                        border:
-                        OutlineInputBorder(),
+                      controller: _delayController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Delay Minutes',
+                        hintText: 'Example: 15',
+                        prefixIcon: Icon(Icons.timer),
+                        suffixText: 'min',
+                        border: OutlineInputBorder(),
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 14,
-                    ),
+                    const SizedBox(height: 14),
 
                     TextField(
-                      controller:
-                      _descriptionController,
+                      controller: _descriptionController,
                       maxLines: 4,
-                      decoration:
-                      const InputDecoration(
-                        labelText:
-                        'Description',
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
                         hintText:
-                        'Example: Train has been stopped for about 15 minutes.',
-                        prefixIcon:
-                        Icon(
-                          Icons.description,
-                        ),
-                        border:
-                        OutlineInputBorder(),
+                            'Example: Train has been stopped for about 15 minutes.',
+                        prefixIcon: Icon(Icons.description),
+                        border: OutlineInputBorder(),
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 18,
-                    ),
+                    const SizedBox(height: 18),
 
                     SizedBox(
-                      width:
-                      double.infinity,
-                      child:
-                      ElevatedButton.icon(
-                        style:
-                        ElevatedButton
-                            .styleFrom(
-                          backgroundColor:
-                          Colors.black,
-                          foregroundColor:
-                          Colors.white,
-                          padding:
-                          const EdgeInsets
-                              .symmetric(
-                            vertical:
-                            14,
-                          ),
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed:
-                        _submitting
-                            ? null
-                            : _submitReport,
-                        icon:
-                        _submitting
+                        onPressed: _submitting ? null : _submitReport,
+                        icon: _submitting
                             ? const SizedBox(
-                          width:
-                          20,
-                          height:
-                          20,
-                          child:
-                          CircularProgressIndicator(
-                            strokeWidth:
-                            2,
-                            color:
-                            Colors.white,
-                          ),
-                        )
-                            : const Icon(
-                          Icons.send,
-                        ),
-                        label:
-                        Text(
-                          _submitting
-                              ? 'Submitting...'
-                              : 'Submit Delay Report',
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.send),
+                        label: Text(
+                          _submitting ? 'Submitting...' : 'Submit Delay Report',
                         ),
                       ),
                     ),
@@ -561,126 +406,62 @@ class _DelayReportScreenState
               ),
             ),
 
-            const SizedBox(
-              height: 24,
-            ),
+            const SizedBox(height: 24),
 
             const Text(
               'Recent Delay Reports',
-              style:
-              TextStyle(
-                fontSize: 18,
-                fontWeight:
-                FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(
-              height: 10,
-            ),
+            const SizedBox(height: 10),
 
             if (_loadingReports)
               const Center(
-                child:
-                Padding(
-                  padding:
-                  EdgeInsets
-                      .all(
-                    24,
-                  ),
-                  child:
-                  CircularProgressIndicator(),
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
                 ),
               )
             else if (_reports.isEmpty)
               const Card(
-                child:
-                Padding(
-                  padding:
-                  EdgeInsets
-                      .all(
-                    24,
-                  ),
-                  child:
-                  Center(
-                    child:
-                    Text(
-                      'No delay reports yet.',
-                    ),
-                  ),
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: Text('No delay reports yet.')),
                 ),
               )
             else
-              ..._reports.map(
-                    (report) {
-                  return Card(
-                    margin:
-                    const EdgeInsets
-                        .only(
-                      bottom:
-                      10,
+              ..._reports.map((report) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.black,
+                      child: Icon(Icons.timer, color: Colors.white),
                     ),
-                    child:
-                    ListTile(
-                      leading:
-                      const CircleAvatar(
-                        backgroundColor:
-                        Colors.black,
-                        child:
-                        Icon(
-                          Icons.timer,
-                          color:
-                          Colors.white,
-                        ),
-                      ),
-                      title:
-                      Text(
-                        '${report['station_name']} • ${report['line_name']}',
-                      ),
-                      subtitle:
-                      Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
-                        children: [
-                          Text(
-                            'Delay: ${report['delay_minutes']} minutes',
-                          ),
-                          Text(
-                            report['description']
-                                ?.toString() ??
-                                '',
-                          ),
-                          Text(
-                            'Status: ${report['report_status']}',
-                            style:
-                            const TextStyle(
-                              fontWeight:
-                              FontWeight
-                                  .w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing:
-                      IconButton(
-                        tooltip:
-                        'Delete Report',
-                        icon:
-                        const Icon(
-                          Icons.delete,
-                        ),
-                        onPressed:
-                            () {
-                          _deleteReport(
-                            report,
-                          );
-                        },
-                      ),
+                    title: Text(
+                      '${report['station_name']} • ${report['line_name']}',
                     ),
-                  );
-                },
-              ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Delay: ${report['delay_minutes']} minutes'),
+                        Text(report['description']?.toString() ?? ''),
+                        Text(
+                          'Status: ${report['report_status']}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Delete Report',
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        _deleteReport(report);
+                      },
+                    ),
+                  ),
+                );
+              }),
           ],
         ),
       ),
@@ -690,8 +471,7 @@ class _DelayReportScreenState
   @override
   void dispose() {
     _delayController.dispose();
-    _descriptionController
-        .dispose();
+    _descriptionController.dispose();
 
     super.dispose();
   }

@@ -98,7 +98,10 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   Expanded(
                     child: Text(
                       card.cardName,
-                      style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: GoogleFonts.dmSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -123,7 +126,10 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               const SizedBox(height: 12),
               Text(
                 'Current Balance: RM ${card.balance.toStringAsFixed(2)}',
-                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
+                style: GoogleFonts.dmSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Divider(height: 24),
               Text(
@@ -173,7 +179,9 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: topUpCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Custom Amount (RM)',
                   prefixText: 'RM ',
@@ -189,7 +197,8 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                     foregroundColor: appYellow,
                   ),
                   onPressed: () async {
-                    final amount = double.tryParse(topUpCtrl.text.trim()) ?? 0.0;
+                    final amount =
+                        double.tryParse(topUpCtrl.text.trim()) ?? 0.0;
                     if (amount > 0 && card.id != null) {
                       final newBal = card.balance + amount;
                       await _dbService.updateBalance(card.id!, newBal);
@@ -214,13 +223,19 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                       _loadCardsData();
                     }
                   },
-                  child: Text('Top Up Now', style: GoogleFonts.dmSans(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Top Up Now',
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const Divider(height: 24),
               Text(
                 'Recent Transactions',
-                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
+                style: GoogleFonts.dmSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               if (transactions.isEmpty)
@@ -246,9 +261,14 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                         ),
                         title: Text(
                           tx.title,
-                          style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        subtitle: Text(tx.date, style: GoogleFonts.dmSans(fontSize: 11)),
+                        subtitle: Text(
+                          tx.date,
+                          style: GoogleFonts.dmSans(fontSize: 11),
+                        ),
                         trailing: Text(
                           '${isTopUp ? '+' : '-'} RM ${tx.amount.toStringAsFixed(2)}',
                           style: GoogleFonts.dmSans(
@@ -277,31 +297,51 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('Add Transit Card', style: GoogleFonts.dmSans(fontWeight: FontWeight.bold)),
+          title: Text(
+            'Add Transit Card',
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Card Label (e.g. My Concession TnG)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Card Label (e.g. My Concession TnG)',
+                  ),
                 ),
                 TextField(
                   controller: numCtrl,
-                  decoration: const InputDecoration(labelText: 'Card Number / Serial'),
+                  decoration: const InputDecoration(
+                    labelText: 'Card Number / Serial',
+                  ),
                 ),
                 TextField(
                   controller: balCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Initial Balance (RM)'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Initial Balance (RM)',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: type,
                   items: const [
-                    DropdownMenuItem(value: 'Standard Adult', child: Text('Standard Adult')),
-                    DropdownMenuItem(value: 'OKU Concession', child: Text('OKU Concession (50% Off)')),
-                    DropdownMenuItem(value: 'Student', child: Text('Student Concession')),
+                    DropdownMenuItem(
+                      value: 'Standard Adult',
+                      child: Text('Standard Adult'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'OKU Concession',
+                      child: Text('OKU Concession (50% Off)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Student',
+                      child: Text('Student Concession'),
+                    ),
                   ],
                   onChanged: (val) => setDialogState(() => type = val!),
                   decoration: const InputDecoration(labelText: 'Card Category'),
@@ -371,13 +411,19 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
             children: [
               Text(
                 'Transit Cards & Pass',
-                style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.dmSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               TextButton.icon(
                 icon: const Icon(Icons.add, size: 16, color: Colors.black),
                 label: Text(
                   'Add New',
-                  style: GoogleFonts.dmSans(fontWeight: FontWeight.bold, color: Colors.black),
+                  style: GoogleFonts.dmSans(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
                 onPressed: _showAddCardDialog,
               ),
@@ -390,114 +436,123 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _cards.isEmpty
                 ? Center(
-              child: Text(
-                'No transit cards added yet.',
-                style: GoogleFonts.dmSans(color: Colors.grey),
-              ),
-            )
-                : ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _cards.length,
-              itemBuilder: (ctx, i) {
-                final card = _cards[i];
-                final isOku = card.cardType.contains('OKU');
-
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _showCardActions(card),
-                  child: Container(
-                    width: 270,
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isOku ? Colors.black : const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isOku ? appYellow : Colors.grey.shade800,
-                        width: 1.5,
-                      ),
+                    child: Text(
+                      'No transit cards added yet.',
+                      style: GoogleFonts.dmSans(color: Colors.grey),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                card.cardName,
+                  )
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _cards.length,
+                    itemBuilder: (ctx, i) {
+                      final card = _cards[i];
+                      final isOku = card.cardType.contains('OKU');
+
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _showCardActions(card),
+                        child: Container(
+                          width: 270,
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isOku
+                                ? Colors.black
+                                : const Color(0xFF1E1E1E),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isOku ? appYellow : Colors.grey.shade800,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      card.cardName,
+                                      style: GoogleFonts.dmSans(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: appYellow,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          card.cardType,
+                                          style: GoogleFonts.dmSans(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const Padding(
+                                        padding: EdgeInsets.only(left: 4.0),
+                                        child: Icon(
+                                          Icons.more_vert,
+                                          color: Colors.white70,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                'RM ${card.balance.toStringAsFixed(2)}',
                                 style: GoogleFonts.dmSans(
-                                  color: Colors.white,
+                                  color: appYellow,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: appYellow,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    card.cardType,
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    card.cardNumber,
                                     style: GoogleFonts.dmSans(
-                                      color: Colors.black,
-                                      fontSize: 10,
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'Manage',
+                                    style: TextStyle(
+                                      color: appYellow,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 4.0),
-                                  child: Icon(
-                                    Icons.more_vert,
-                                    color: Colors.white70,
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Text(
-                          'RM ${card.balance.toStringAsFixed(2)}',
-                          style: GoogleFonts.dmSans(
-                            color: appYellow,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              card.cardNumber,
-                              style: GoogleFonts.dmSans(
-                                  color: Colors.grey, fontSize: 12),
-                            ),
-                            const Text(
-                              'Manage',
-                              style: TextStyle(
-                                color: appYellow,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
 
           const SizedBox(height: 24),
@@ -505,15 +560,34 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
           // 2. SEGMENTED TRANSPORT MODE & SCHEDULE LIST
           Text(
             'Select Transport Mode',
-            style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
+            style: GoogleFonts.dmSans(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'LRT', label: Text('LRT'), icon: Icon(Icons.train)),
-              ButtonSegment(value: 'MRT', label: Text('MRT'), icon: Icon(Icons.subway)),
-              ButtonSegment(value: 'Rapid Bus', label: Text('Bus'), icon: Icon(Icons.directions_bus)),
-              ButtonSegment(value: 'KTM', label: Text('KTM'), icon: Icon(Icons.directions_railway)),
+              ButtonSegment(
+                value: 'LRT',
+                label: Text('LRT'),
+                icon: Icon(Icons.train),
+              ),
+              ButtonSegment(
+                value: 'MRT',
+                label: Text('MRT'),
+                icon: Icon(Icons.subway),
+              ),
+              ButtonSegment(
+                value: 'Rapid Bus',
+                label: Text('Bus'),
+                icon: Icon(Icons.directions_bus),
+              ),
+              ButtonSegment(
+                value: 'KTM',
+                label: Text('KTM'),
+                icon: Icon(Icons.directions_railway),
+              ),
             ],
             selected: {_selectedType},
             onSelectionChanged: (newSelection) {
@@ -528,7 +602,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '$_selectedType',
+                  _selectedType,
                   style: GoogleFonts.dmSans(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -568,82 +642,90 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               ),
             )
           else
-            ..._liveArrivals.map((arrival) => Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              color: Colors.white,
-              elevation: 2,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.black,
-                  child: Text(
-                    _selectedType.substring(0, 1),
-                    style: GoogleFonts.dmSans(
-                      color: appYellow,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  arrival.line,
-                  style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'To ${arrival.destination} • ${arrival.platform}',
-                        style: GoogleFonts.dmSans(),
-                        overflow: TextOverflow.ellipsis,
+            ..._liveArrivals.map(
+              (arrival) => Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                color: Colors.white,
+                elevation: 2,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.black,
+                    child: Text(
+                      _selectedType.substring(0, 1),
+                      style: GoogleFonts.dmSans(
+                        color: appYellow,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (arrival.isStepFree)
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.accessible, size: 14, color: Colors.black),
-                          SizedBox(width: 2),
-                          Text(
-                            'Step-Free',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: appYellow,
-                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  title: Text(
+                    arrival.line,
+                    style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Row(
                     children: [
-                      Text(
-                        '${arrival.arrivalMinutes} min',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 14,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          'To ${arrival.destination} • ${arrival.platform}',
+                          style: GoogleFonts.dmSans(),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Text(
-                        'LIVE',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade800,
+                      if (arrival.isStepFree)
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.accessible,
+                              size: 14,
+                              color: Colors.black,
+                            ),
+                            SizedBox(width: 2),
+                            Text(
+                              'Step-Free',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
                     ],
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: appYellow,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${arrival.arrivalMinutes} min',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'LIVE',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            )),
+            ),
         ],
       ),
     );

@@ -45,10 +45,7 @@ class ReportService {
     final response = await _supabase
         .from('facility_reports')
         .select()
-        .order(
-      'created_at',
-      ascending: false,
-    );
+        .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -66,12 +63,12 @@ class ReportService {
     await _supabase
         .from('facility_reports')
         .update({
-      'station_name': stationName,
-      'facility_type': facilityType,
-      'issue_type': issueType,
-      'description': description,
-      'updated_at': DateTime.now().toIso8601String(),
-    })
+          'station_name': stationName,
+          'facility_type': facilityType,
+          'issue_type': issueType,
+          'description': description,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
         .eq('id', id)
         .eq('user_id', userId);
   }
@@ -115,10 +112,7 @@ class ReportService {
     final response = await _supabase
         .from('delay_reports')
         .select()
-        .order(
-      'created_at',
-      ascending: false,
-    );
+        .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(response);
   }
@@ -136,12 +130,12 @@ class ReportService {
     await _supabase
         .from('delay_reports')
         .update({
-      'station_name': stationName,
-      'line_name': lineName,
-      'delay_minutes': delayMinutes,
-      'description': description,
-      'updated_at': DateTime.now().toIso8601String(),
-    })
+          'station_name': stationName,
+          'line_name': lineName,
+          'delay_minutes': delayMinutes,
+          'description': description,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
         .eq('id', id)
         .eq('user_id', userId);
   }

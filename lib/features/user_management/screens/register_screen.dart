@@ -1,67 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class RegisterScreen
-    extends StatefulWidget {
-  const RegisterScreen({
-    super.key,
-  });
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() =>
-      _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState
-    extends State<RegisterScreen> {
-  final _emailController =
-  TextEditingController();
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _emailController = TextEditingController();
 
-  final _passwordController =
-  TextEditingController();
+  final _nameController = TextEditingController();
 
-  final _confirmPasswordController =
-  TextEditingController();
+  final _passwordController = TextEditingController();
 
-  final _formKey =
-  GlobalKey<FormState>();
+  final _confirmPasswordController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
 
   bool _loading = false;
   bool _hidePassword = true;
   bool _hideConfirmPassword = true;
 
-  SupabaseClient get _supabase =>
-      Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
-  void _showError(
-      String message,
-      ) {
+  void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.red,
-        behavior:
-        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.error,
-              color: Colors.white,
-            ),
+            const Icon(Icons.error, color: Colors.white),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -69,35 +47,21 @@ class _RegisterScreenState
     );
   }
 
-  void _showSuccess(
-      String message,
-      ) {
+  void _showSuccess(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.green,
-        behavior:
-        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-            ),
+            const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -108,18 +72,12 @@ class _RegisterScreenState
   Future<void> _register() async {
     if (_loading) return;
 
-    final valid =
-        _formKey.currentState
-            ?.validate() ??
-            false;
+    final valid = _formKey.currentState?.validate() ?? false;
 
     if (!valid) return;
 
-    if (_passwordController.text !=
-        _confirmPasswordController.text) {
-      _showError(
-        'Passwords do not match.',
-      );
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showError('Passwords do not match.');
       return;
     }
 
@@ -128,37 +86,30 @@ class _RegisterScreenState
     });
 
     try {
-      final response =
-      await _supabase.auth.signUp(
-        email:
-        _emailController.text
-            .trim(),
-        password:
-        _passwordController.text,
+      final response = await _supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        data: {
+          'display_name': _nameController.text.trim().isEmpty
+              ? 'Commuter'
+              : _nameController.text.trim(),
+        },
       );
 
       if (response.user == null) {
-        _showError(
-          'Registration failed. Please try again.',
-        );
+        _showError('Registration failed. Please try again.');
         return;
       }
 
-      _showSuccess(
-        'Account created successfully.',
-      );
+      _showSuccess('Account created successfully.');
 
       if (!mounted) return;
 
       Navigator.pop(context);
     } on AuthException catch (e) {
-      _showError(
-        e.message,
-      );
+      _showError(e.message);
     } catch (e) {
-      _showError(
-        'Unable to register. Please try again.',
-      );
+      _showError('Unable to register. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -169,133 +120,85 @@ class _RegisterScreenState
   }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title:
-        const Text(
-          'Register',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Register')),
 
       body: SafeArea(
         child: Center(
-          child:
-          SingleChildScrollView(
-            padding:
-            const EdgeInsets.all(
-              24,
-            ),
-            child:
-            ConstrainedBox(
-              constraints:
-              const BoxConstraints(
-                maxWidth: 420,
-              ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Card(
                 elevation: 4,
-                shape:
-                RoundedRectangleBorder(
-                  borderRadius:
-                  BorderRadius.circular(
-                    18,
-                  ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: Padding(
-                  padding:
-                  const EdgeInsets
-                      .all(
-                    24,
-                  ),
+                  padding: const EdgeInsets.all(24),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       children: [
                         const CircleAvatar(
                           radius: 34,
-                          backgroundColor:
-                          Colors.black,
+                          backgroundColor: Colors.black,
                           child: Icon(
-                            Icons
-                                .person_add,
-                            color:
-                            Color(
-                              0xFFFCEB00,
-                            ),
+                            Icons.person_add,
+                            color: Color(0xFFFCEB00),
                             size: 36,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 18,
-                        ),
+                        const SizedBox(height: 18),
 
                         const Text(
                           'Create Account',
-                          style:
-                          TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
-                            fontWeight:
-                            FontWeight
-                                .bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 6,
-                        ),
+                        const SizedBox(height: 6),
 
                         const Text(
                           'Register to submit facility and delay reports.',
-                          textAlign:
-                          TextAlign
-                              .center,
-                          style:
-                          TextStyle(
-                            color:
-                            Colors.grey,
-                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
                         ),
 
-                        const SizedBox(
-                          height: 24,
-                        ),
+                        const SizedBox(height: 24),
 
                         TextFormField(
-                          controller:
-                          _emailController,
-                          keyboardType:
-                          TextInputType
-                              .emailAddress,
-                          decoration:
-                          const InputDecoration(
-                            labelText:
-                            'Email',
-                            prefixIcon:
-                            Icon(
-                              Icons.email,
-                            ),
-                            border:
-                            OutlineInputBorder(),
+                          controller: _nameController,
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: 'Display name (optional)',
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
                           ),
-                          validator:
-                              (value) {
-                            final email =
-                                value
-                                    ?.trim() ??
-                                    '';
+                        ),
 
-                            if (email
-                                .isEmpty) {
+                        const SizedBox(height: 14),
+
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            final email = value?.trim() ?? '';
+
+                            if (email.isEmpty) {
                               return 'Please enter your email.';
                             }
 
-                            if (!email
-                                .contains(
-                              '@',
-                            )) {
+                            if (!email.contains('@')) {
                               return 'Please enter a valid email.';
                             }
 
@@ -303,56 +206,34 @@ class _RegisterScreenState
                           },
                         ),
 
-                        const SizedBox(
-                          height: 14,
-                        ),
+                        const SizedBox(height: 14),
 
                         TextFormField(
-                          controller:
-                          _passwordController,
-                          obscureText:
-                          _hidePassword,
-                          decoration:
-                          InputDecoration(
-                            labelText:
-                            'Password',
-                            prefixIcon:
-                            const Icon(
-                              Icons.lock,
-                            ),
-                            suffixIcon:
-                            IconButton(
-                              onPressed:
-                                  () {
-                                setState(
-                                      () {
-                                    _hidePassword =
-                                    !_hidePassword;
-                                  },
-                                );
+                          controller: _passwordController,
+                          obscureText: _hidePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _hidePassword = !_hidePassword;
+                                });
                               },
                               icon: Icon(
                                 _hidePassword
-                                    ? Icons
-                                    .visibility
-                                    : Icons
-                                    .visibility_off,
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                               ),
                             ),
-                            border:
-                            const OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          validator:
-                              (value) {
-                            if (value ==
-                                null ||
-                                value
-                                    .isEmpty) {
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
                               return 'Please enter a password.';
                             }
 
-                            if (value.length <
-                                6) {
+                            if (value.length < 6) {
                               return 'Password must contain at least 6 characters.';
                             }
 
@@ -360,52 +241,30 @@ class _RegisterScreenState
                           },
                         ),
 
-                        const SizedBox(
-                          height: 14,
-                        ),
+                        const SizedBox(height: 14),
 
                         TextFormField(
-                          controller:
-                          _confirmPasswordController,
-                          obscureText:
-                          _hideConfirmPassword,
-                          decoration:
-                          InputDecoration(
-                            labelText:
-                            'Confirm Password',
-                            prefixIcon:
-                            const Icon(
-                              Icons
-                                  .lock_outline,
-                            ),
-                            suffixIcon:
-                            IconButton(
-                              onPressed:
-                                  () {
-                                setState(
-                                      () {
-                                    _hideConfirmPassword =
-                                    !_hideConfirmPassword;
-                                  },
-                                );
+                          controller: _confirmPasswordController,
+                          obscureText: _hideConfirmPassword,
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _hideConfirmPassword = !_hideConfirmPassword;
+                                });
                               },
                               icon: Icon(
                                 _hideConfirmPassword
-                                    ? Icons
-                                    .visibility
-                                    : Icons
-                                    .visibility_off,
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                               ),
                             ),
-                            border:
-                            const OutlineInputBorder(),
+                            border: const OutlineInputBorder(),
                           ),
-                          validator:
-                              (value) {
-                            if (value ==
-                                null ||
-                                value
-                                    .isEmpty) {
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
                               return 'Please confirm your password.';
                             }
 
@@ -413,55 +272,27 @@ class _RegisterScreenState
                           },
                         ),
 
-                        const SizedBox(
-                          height: 20,
-                        ),
+                        const SizedBox(height: 20),
 
                         SizedBox(
-                          width:
-                          double.infinity,
-                          child:
-                          ElevatedButton.icon(
-                            style:
-                            ElevatedButton
-                                .styleFrom(
-                              backgroundColor:
-                              Colors.black,
-                              foregroundColor:
-                              const Color(
-                                0xFFFCEB00,
-                              ),
-                              padding:
-                              const EdgeInsets
-                                  .symmetric(
-                                vertical:
-                                14,
-                              ),
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: const Color(0xFFFCEB00),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            onPressed:
-                            _loading
-                                ? null
-                                : _register,
-                            icon:
-                            _loading
+                            onPressed: _loading ? null : _register,
+                            icon: _loading
                                 ? const SizedBox(
-                              width:
-                              20,
-                              height:
-                              20,
-                              child:
-                              CircularProgressIndicator(
-                                strokeWidth:
-                                2,
-                                color:
-                                Color(
-                                  0xFFFCEB00,
-                                ),
-                              ),
-                            )
-                                : const Icon(
-                              Icons.person_add,
-                            ),
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFFFCEB00),
+                                    ),
+                                  )
+                                : const Icon(Icons.person_add),
                             label: Text(
                               _loading
                                   ? 'Creating account...'
@@ -484,9 +315,9 @@ class _RegisterScreenState
   @override
   void dispose() {
     _emailController.dispose();
+    _nameController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController
-        .dispose();
+    _confirmPasswordController.dispose();
 
     super.dispose();
   }

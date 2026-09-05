@@ -7,17 +7,14 @@ class TransitCardCloudService {
   // CLOUD DB: Upload / Sync Card to Supabase
   Future<void> syncCardToCloud(TransitCard card) async {
     try {
-      await _supabase.from('user_transit_cards').upsert(
-        {
-          'local_id': card.id,
-          'card_name': card.cardName,
-          'card_number': card.cardNumber,
-          'balance': card.balance,
-          'card_type': card.cardType,
-          'last_synced': DateTime.now().toIso8601String(),
-        },
-        onConflict: 'local_id',
-      );
+      await _supabase.from('user_transit_cards').upsert({
+        'local_id': card.id,
+        'card_name': card.cardName,
+        'card_number': card.cardNumber,
+        'balance': card.balance,
+        'card_type': card.cardType,
+        'last_synced': DateTime.now().toIso8601String(),
+      }, onConflict: 'local_id');
     } catch (e) {
       // Offline fallback: if network fails, local SQLite remains source of truth
     }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../../../screens/station_facilities_screen.dart';
 import '../../../screens/station_map_screen.dart';
 import '../../reports/delay_report_screen.dart';
+import '../../transit_card/services/fare_calculation_service.dart';
 
 const Color appYellow = Color(0xFFFCEB00);
 
@@ -83,7 +83,6 @@ class _JourneyPlannerScreenState
   int _estimatedMinutes() {
     final fromIndex =
     stations.indexOf(_origin);
-
     final toIndex =
     stations.indexOf(_destination);
 
@@ -96,7 +95,6 @@ class _JourneyPlannerScreenState
   List<String> _buildSimpleRoute() {
     final fromIndex =
     stations.indexOf(_origin);
-
     final toIndex =
     stations.indexOf(_destination);
 
@@ -127,6 +125,16 @@ class _JourneyPlannerScreenState
       ) {
     final route =
     _buildSimpleRoute();
+    final int hops = (route.length > 1) ? route.length - 1 : 1;
+
+    final double adultFare = FareCalculationService.calculateFare(
+      stationHops: hops,
+      cardType: 'Standard Adult',
+    );
+    final double okuFare = FareCalculationService.calculateFare(
+      stationHops: hops,
+      cardType: 'OKU Concession',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -135,7 +143,6 @@ class _JourneyPlannerScreenState
           'Trip Planner',
         ),
       ),
-
       body:
       SingleChildScrollView(
         padding:
@@ -146,10 +153,7 @@ class _JourneyPlannerScreenState
           crossAxisAlignment:
           CrossAxisAlignment.start,
           children: [
-            // =================================================
             // QUICK LINKS
-            // =================================================
-
             Row(
               children: [
                 Expanded(
@@ -183,11 +187,9 @@ class _JourneyPlannerScreenState
                     },
                   ),
                 ),
-
                 const SizedBox(
                   width: 8,
                 ),
-
                 Expanded(
                   child:
                   ElevatedButton.icon(
@@ -221,15 +223,11 @@ class _JourneyPlannerScreenState
                 ),
               ],
             ),
-
             const SizedBox(
               height: 10,
             ),
 
-            // =================================================
             // REPORT DELAY
-            // =================================================
-
             SizedBox(
               width: double.infinity,
               child:
@@ -261,15 +259,11 @@ class _JourneyPlannerScreenState
                 },
               ),
             ),
-
             const SizedBox(
               height: 16,
             ),
 
-            // =================================================
             // ORIGIN / DESTINATION CARD
-            // =================================================
-
             Card(
               color: Colors.black,
               shape:
@@ -349,7 +343,6 @@ class _JourneyPlannerScreenState
                             null) {
                           return;
                         }
-
                         setState(() {
                           _origin =
                               value;
@@ -358,11 +351,9 @@ class _JourneyPlannerScreenState
                         });
                       },
                     ),
-
                     const SizedBox(
                       height: 14,
                     ),
-
                     DropdownButtonFormField<
                         String>(
                       initialValue:
@@ -426,7 +417,6 @@ class _JourneyPlannerScreenState
                             null) {
                           return;
                         }
-
                         setState(() {
                           _destination =
                               value;
@@ -435,11 +425,9 @@ class _JourneyPlannerScreenState
                         });
                       },
                     ),
-
                     const SizedBox(
                       height: 12,
                     ),
-
                     Row(
                       mainAxisAlignment:
                       MainAxisAlignment
@@ -458,7 +446,6 @@ class _JourneyPlannerScreenState
                             ),
                           ),
                         ),
-
                         Switch(
                           value:
                           _preferStepFree,
@@ -476,11 +463,9 @@ class _JourneyPlannerScreenState
                         ),
                       ],
                     ),
-
                     const SizedBox(
                       height: 10,
                     ),
-
                     SizedBox(
                       width:
                       double.infinity,
@@ -510,15 +495,11 @@ class _JourneyPlannerScreenState
                 ),
               ),
             ),
-
             const SizedBox(
               height: 20,
             ),
 
-            // =================================================
             // ROUTE RESULT
-            // =================================================
-
             Text(
               'Recommended Journey',
               style:
@@ -528,11 +509,9 @@ class _JourneyPlannerScreenState
                 FontWeight.bold,
               ),
             ),
-
             const SizedBox(
               height: 12,
             ),
-
             if (!_routeGenerated)
               Card(
                 child:
@@ -548,11 +527,9 @@ class _JourneyPlannerScreenState
                         Icons.route,
                         size: 32,
                       ),
-
                       const SizedBox(
                         width: 12,
                       ),
-
                       Expanded(
                         child:
                         Text(
@@ -627,7 +604,6 @@ class _JourneyPlannerScreenState
                               ),
                             ),
                           ),
-
                           if (_preferStepFree)
                             Chip(
                               avatar:
@@ -649,11 +625,9 @@ class _JourneyPlannerScreenState
                             ),
                         ],
                       ),
-
                       const Divider(
                         height: 26,
                       ),
-
                       _buildRouteStep(
                         number: 1,
                         icon:
@@ -663,7 +637,6 @@ class _JourneyPlannerScreenState
                         subtitle:
                         'Begin your journey from $_origin.',
                       ),
-
                       for (int i = 1;
                       i <
                           route.length -
@@ -672,7 +645,6 @@ class _JourneyPlannerScreenState
                         const SizedBox(
                           height: 14,
                         ),
-
                         _buildRouteStep(
                           number:
                           i + 1,
@@ -686,11 +658,9 @@ class _JourneyPlannerScreenState
                               : 'Continue through this station.',
                         ),
                       ],
-
                       const SizedBox(
                         height: 14,
                       ),
-
                       _buildRouteStep(
                         number:
                         route.length,
@@ -701,10 +671,76 @@ class _JourneyPlannerScreenState
                         subtitle:
                         'You have reached your destination.',
                       ),
-
                       const Divider(
                         height: 26,
                       ),
+
+                      // FARE CALCULATION CARD
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Estimated Fare ($hops stops)',
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'RM ${adultFare.toStringAsFixed(2)}',
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: appYellow,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'OKU Concession',
+                                    style: GoogleFonts.dmSans(
+                                      color: Colors.black87,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    'RM ${okuFare.toStringAsFixed(2)} (50% Off)',
+                                    style: GoogleFonts.dmSans(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
 
                       if (_preferStepFree)
                         Container(
@@ -717,9 +753,7 @@ class _JourneyPlannerScreenState
                           BoxDecoration(
                             color:
                             appYellow
-                                .withOpacity(
-                              0.15,
-                            ),
+                                .withAlpha(38),
                             borderRadius:
                             BorderRadius
                                 .circular(
@@ -736,11 +770,9 @@ class _JourneyPlannerScreenState
                               const Icon(
                                 Icons.accessible,
                               ),
-
                               const SizedBox(
                                 width: 10,
                               ),
-
                               Expanded(
                                 child:
                                 Text(
@@ -756,11 +788,9 @@ class _JourneyPlannerScreenState
                             ],
                           ),
                         ),
-
                       const SizedBox(
                         height: 12,
                       ),
-
                       SizedBox(
                         width:
                         double.infinity,
@@ -796,11 +826,9 @@ class _JourneyPlannerScreenState
                           ),
                         ),
                       ),
-
                       const SizedBox(
                         height: 8,
                       ),
-
                       SizedBox(
                         width:
                         double.infinity,
@@ -875,20 +903,16 @@ class _JourneyPlannerScreenState
             ),
           ),
         ),
-
         const SizedBox(
           width: 12,
         ),
-
         Icon(
           icon,
           size: 22,
         ),
-
         const SizedBox(
           width: 10,
         ),
-
         Expanded(
           child: Column(
             crossAxisAlignment:
@@ -903,17 +927,15 @@ class _JourneyPlannerScreenState
                   fontSize: 15,
                 ),
               ),
-
               const SizedBox(
                 height: 2,
               ),
-
               Text(
                 subtitle,
                 style:
                 GoogleFonts.dmSans(
                   color:
-                  Colors.grey[700],
+                  Colors.grey[700], 
                   fontSize: 13,
                 ),
               ),

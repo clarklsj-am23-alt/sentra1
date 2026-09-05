@@ -21,13 +21,11 @@ const Color appYellow = Color(0xFFFCEB00);
 // Values come from --dart-define
 // =============================================================
 
-const String supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-);
-
-const String supabaseKey = String.fromEnvironment(
-  'SUPABASE_PUBLISHABLE_KEY',
-);
+// =============================================================
+// SUPABASE CONFIGURATION
+// =============================================================
+const String supabaseUrl = 'https://jquemzsrgjyvmvfqwsrp.supabase.co';
+const String supabaseKey = 'sb_publishable_0zf3Cv3XpEurtW_n9OvcZg_OKx1OTPu';
 
 // =============================================================
 // MAIN

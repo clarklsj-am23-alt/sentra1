@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class StationFacilitiesDatabase {
   static final StationFacilitiesDatabase instance =
-  StationFacilitiesDatabase._init();
+      StationFacilitiesDatabase._init();
 
   static Database? _database;
 
@@ -21,10 +21,7 @@ class StationFacilitiesDatabase {
   Future<Database> _initDatabase() async {
     final databasePath = await getDatabasesPath();
 
-    final path = join(
-      databasePath,
-      'station_facilities.db',
-    );
+    final path = join(databasePath, 'station_facilities.db');
 
     return await openDatabase(
       path,
@@ -34,10 +31,7 @@ class StationFacilitiesDatabase {
     );
   }
 
-  Future<void> _createDatabase(
-      Database db,
-      int version,
-      ) async {
+  Future<void> _createDatabase(Database db, int version) async {
     await db.execute('''
       CREATE TABLE station_facilities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,19 +48,19 @@ class StationFacilitiesDatabase {
   }
 
   Future<void> _upgradeDatabase(
-      Database db,
-      int oldVersion,
-      int newVersion,
-      ) async {
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     if (oldVersion < 2) {
       await db.execute(
         "ALTER TABLE station_facilities "
-            "ADD COLUMN accessibility_note TEXT DEFAULT ''",
+        "ADD COLUMN accessibility_note TEXT DEFAULT ''",
       );
 
       await db.execute(
         "ALTER TABLE station_facilities "
-            "ADD COLUMN is_step_free INTEGER NOT NULL DEFAULT 0",
+        "ADD COLUMN is_step_free INTEGER NOT NULL DEFAULT 0",
       );
 
       await _seedFacilities(db);
@@ -154,8 +148,7 @@ class StationFacilitiesDatabase {
     for (final facility in demoFacilities) {
       final existing = await db.query(
         'station_facilities',
-        where:
-        'station_name = ? AND facility_type = ? AND location = ?',
+        where: 'station_name = ? AND facility_type = ? AND location = ?',
         whereArgs: [
           facility['station_name'],
           facility['facility_type'],
@@ -164,10 +157,7 @@ class StationFacilitiesDatabase {
       );
 
       if (existing.isEmpty) {
-        await db.insert(
-          'station_facilities',
-          facility,
-        );
+        await db.insert('station_facilities', facility);
       }
     }
   }
@@ -183,17 +173,14 @@ class StationFacilitiesDatabase {
   }) async {
     final db = await database;
 
-    return await db.insert(
-      'station_facilities',
-      {
-        'station_name': stationName,
-        'facility_type': facilityType,
-        'location': location,
-        'status': status,
-        'accessibility_note': accessibilityNote,
-        'is_step_free': isStepFree ? 1 : 0,
-      },
-    );
+    return await db.insert('station_facilities', {
+      'station_name': stationName,
+      'facility_type': facilityType,
+      'location': location,
+      'status': status,
+      'accessibility_note': accessibilityNote,
+      'is_step_free': isStepFree ? 1 : 0,
+    });
   }
 
   // READ + SEARCH + FILTER
@@ -210,17 +197,13 @@ class StationFacilitiesDatabase {
     if (search.trim().isNotEmpty) {
       conditions.add(
         '(station_name LIKE ? OR '
-            'facility_type LIKE ? OR '
-            'location LIKE ?)',
+        'facility_type LIKE ? OR '
+        'location LIKE ?)',
       );
 
       final query = '%${search.trim()}%';
 
-      arguments.addAll([
-        query,
-        query,
-        query,
-      ]);
+      arguments.addAll([query, query, query]);
     }
 
     if (facilityType != 'All') {
@@ -234,12 +217,8 @@ class StationFacilitiesDatabase {
 
     return await db.query(
       'station_facilities',
-      where: conditions.isEmpty
-          ? null
-          : conditions.join(' AND '),
-      whereArgs: arguments.isEmpty
-          ? null
-          : arguments,
+      where: conditions.isEmpty ? null : conditions.join(' AND '),
+      whereArgs: arguments.isEmpty ? null : arguments,
       orderBy: 'station_name ASC, facility_type ASC',
     );
   }

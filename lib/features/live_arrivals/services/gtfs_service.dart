@@ -24,10 +24,9 @@ class GtfsService {
 
   Future<List<TransitArrival>> fetchArrivalsByMode(String mode) async {
     try {
-      final response = await http.get(
-        Uri.parse(_gtfsApiUrl),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 3));
+      final response = await http
+          .get(Uri.parse(_gtfsApiUrl), headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

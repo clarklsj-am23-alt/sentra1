@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../database/station_facilities_database.dart';
+import '../../exit_wayfinding/screens/exit_compass_screen.dart';
+import '../../exit_wayfinding/screens/standalone_compass_screen.dart';
 import '../../live_arrivals/services/gtfs_service.dart';
+import '../../user_management/data/profile_repository.dart';
 
 const Color appYellow = Color(0xFFFCEB00);
 
 class MapHomeScreen extends StatefulWidget {
-  const MapHomeScreen({super.key});
+  const MapHomeScreen({super.key, this.user});
+
+  final User? user;
 
   @override
   State<MapHomeScreen> createState() => _MapHomeScreenState();
@@ -19,6 +25,7 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
   GoogleMapController? _mapController;
   final _facilityDb = StationFacilitiesDatabase.instance;
   final _gtfsService = GtfsService();
+  ProfileRepository? _profileRepository;
 
   bool _locationPermissionGranted = false;
   bool _gettingLocation = false;
@@ -27,6 +34,29 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _transportTypes = ['All', 'LRT', 'MRT', 'KTM'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.user != null) {
+      _profileRepository = ProfileRepository(client: Supabase.instance.client);
+      _loadProfilePreference();
+    }
+  }
+
+  Future<void> _loadProfilePreference() async {
+    final user = widget.user;
+    final repository = _profileRepository;
+    if (user == null || repository == null) return;
+    try {
+      final profile = await repository.getOrCreateProfile(user);
+      if (mounted && profile.requiresStepFree) {
+        setState(() => _stepFreeOnly = true);
+      }
+    } catch (_) {
+      // The map remains usable if the optional profile table is unavailable.
+    }
+  }
 
   final List<Map<String, dynamic>> _stations = [
     {
@@ -90,10 +120,11 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
   List<Map<String, dynamic>> get _filteredStations {
     final query = _searchController.text.trim().toLowerCase();
     return _stations.where((station) {
-      final matchesTransport = _selectedTransport == 'All' ||
-          station['type'] == _selectedTransport;
+      final matchesTransport =
+          _selectedTransport == 'All' || station['type'] == _selectedTransport;
       final matchesStepFree = !_stepFreeOnly || station['isStepFree'] == true;
-      final matchesQuery = query.isEmpty ||
+      final matchesQuery =
+          query.isEmpty ||
           station['name'].toString().toLowerCase().contains(query) ||
           station['lines'].toString().toLowerCase().contains(query);
       return matchesTransport && matchesStepFree && matchesQuery;
@@ -164,7 +195,9 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
 
       setState(() => _locationPermissionGranted = true);
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       _mapController?.animateCamera(
@@ -196,6 +229,7 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
 
     final facilities = results[0] as List<Map<String, dynamic>>;
     final arrivals = results[1] as List<TransitArrival>;
+    final stationId = _stationExitId(station['name'] as String);
 
     if (!mounted) return;
 
@@ -246,7 +280,9 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                         backgroundColor: appYellow,
                         label: Text(
                           station['type'],
-                          style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -260,7 +296,9 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                               ? Icons.check_circle
                               : Icons.cancel,
                           size: 16,
-                          color: station['isStepFree'] ? Colors.green : Colors.red,
+                          color: station['isStepFree']
+                              ? Colors.green
+                              : Colors.red,
                         ),
                         label: Text(
                           station['isStepFree']
@@ -279,6 +317,37 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                     ],
                   ),
 
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: appYellow,
+                      ),
+                      onPressed: stationId == null
+                          ? null
+                          : () {
+                              Navigator.of(sheetContext).pop();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ExitCompassScreen(
+                                    stationId: stationId,
+                                    stationName: station['name'] as String,
+                                    requiresStepFree: _stepFreeOnly,
+                                  ),
+                                ),
+                              );
+                            },
+                      icon: const Icon(Icons.signpost_outlined),
+                      label: Text(
+                        stationId == null
+                            ? 'Exit wayfinding unavailable'
+                            : 'Find a station exit',
+                      ),
+                    ),
+                  ),
+
                   const Divider(height: 28),
 
                   // 1. LIVE GTFS TRANSIT DEPARTURES
@@ -293,7 +362,10 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.shade100,
                           borderRadius: BorderRadius.circular(4),
@@ -315,71 +387,81 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Text(
                         'No live departure records available.',
-                        style: GoogleFonts.dmSans(color: Colors.grey, fontSize: 13),
+                        style: GoogleFonts.dmSans(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
                       ),
                     )
                   else
-                    ...arrivals.take(3).map((arr) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: Colors.black,
-                            child: Text(
-                              arr.line.substring(0, 1),
-                              style: GoogleFonts.dmSans(
-                                color: appYellow,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    ...arrivals
+                        .take(3)
+                        .map(
+                          (arr) => Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
                               children: [
-                                Text(
-                                  arr.line,
-                                  style: GoogleFonts.dmSans(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: Colors.black,
+                                  child: Text(
+                                    arr.line.substring(0, 1),
+                                    style: GoogleFonts.dmSans(
+                                      color: appYellow,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                                Text(
-                                  'To ${arr.destination} • ${arr.platform}',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade700,
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        arr.line,
+                                        style: GoogleFonts.dmSans(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        'To ${arr.destination} • ${arr.platform}',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: appYellow,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${arr.arrivalMinutes} min',
+                                    style: GoogleFonts.dmSans(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: appYellow,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${arr.arrivalMinutes} min',
-                              style: GoogleFonts.dmSans(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
+                        ),
 
                   const Divider(height: 28),
 
@@ -423,16 +505,17 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                           ),
                           title: Text(
                             fac['facility_type'].toString(),
-                            style:
-                            GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Location: ${fac['location']}'),
                               if (fac['accessibility_note']
-                                  ?.toString()
-                                  .isNotEmpty ==
+                                      ?.toString()
+                                      .isNotEmpty ==
                                   true)
                                 Text(
                                   fac['accessibility_note'].toString(),
@@ -480,6 +563,47 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
     );
   }
 
+  Widget _buildCompassButton(BuildContext context) {
+    return SizedBox.square(
+      dimension: 48,
+      child: Material(
+        color: Colors.black,
+        elevation: 6,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Compass')),
+                  body: const SafeArea(child: StandaloneCompassScreen()),
+                ),
+              ),
+            );
+          },
+          child: const Tooltip(
+            message: 'Open compass',
+            child: Icon(Icons.explore, color: appYellow),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _stationExitId(String stationName) {
+    const ids = {
+      'KL Sentral': 'kl_sentral',
+      'Pasar Seni': 'pasar_seni',
+      'Bukit Bintang': 'bukit_bintang',
+      'Muzium Negara': 'muzium_negara',
+      'Masjid Jamek': 'masjid_jamek',
+      'Titiwangsa': 'titiwangsa',
+      'Maluri': 'maluri',
+    };
+    return ids[stationName];
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -489,9 +613,6 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sentra1 Accessibility Map'),
-      ),
       body: Stack(
         children: [
           GoogleMap(
@@ -512,33 +633,50 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  elevation: 6,
-                  color: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Search station or transit line...',
-                      hintStyle: GoogleFonts.dmSans(color: Colors.grey),
-                      prefixIcon: const Icon(Icons.search, color: appYellow),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Card(
+                        elevation: 6,
+                        color: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.dmSans(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Search station or transit line...',
+                            hintStyle: GoogleFonts.dmSans(color: Colors.grey),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: appYellow,
+                            ),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(
+                                      Icons.clear,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {});
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    _buildCompassButton(context),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 SingleChildScrollView(
@@ -585,7 +723,8 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                         ),
                         selectedColor: appYellow,
                         backgroundColor: Colors.black,
-                        onSelected: (val) => setState(() => _stepFreeOnly = val),
+                        onSelected: (val) =>
+                            setState(() => _stepFreeOnly = val),
                       ),
                     ],
                   ),
@@ -602,13 +741,13 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
               onPressed: _goToMyLocation,
               child: _gettingLocation
                   ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: appYellow,
-                ),
-              )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: appYellow,
+                      ),
+                    )
                   : const Icon(Icons.my_location),
             ),
           ),
@@ -618,18 +757,19 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
             maxChildSize: 0.70,
             builder: (context, scrollController) {
               final stations = _filteredStations;
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(blurRadius: 10, color: Colors.black26),
-                  ],
+              return Material(
+                color: Colors.white,
+                elevation: 6,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
                 ),
+                clipBehavior: Clip.antiAlias,
                 child: ListView(
                   controller: scrollController,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   children: [
                     Center(
                       child: Container(
@@ -661,38 +801,40 @@ class _MapHomeScreenState extends State<MapHomeScreen> {
                         ),
                       )
                     else
-                      ...stations.map((st) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        onTap: () => _openStationFacilitiesSheet(st),
-                        leading: CircleAvatar(
-                          backgroundColor: st['isStepFree']
-                              ? appYellow.withValues(alpha: 0.3)
-                              : Colors.grey.shade300,
-                          child: Icon(
-                            st['isStepFree']
-                                ? Icons.accessible
-                                : Icons.not_accessible,
-                            color: Colors.black,
+                      ...stations.map(
+                        (st) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          onTap: () => _openStationFacilitiesSheet(st),
+                          leading: CircleAvatar(
+                            backgroundColor: st['isStepFree']
+                                ? appYellow.withValues(alpha: 0.3)
+                                : Colors.grey.shade300,
+                            child: Icon(
+                              st['isStepFree']
+                                  ? Icons.accessible
+                                  : Icons.not_accessible,
+                              color: Colors.black,
+                            ),
+                          ),
+                          title: Text(
+                            st['name'],
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${st['type']} • ${st['lines']}',
+                            style: GoogleFonts.dmSans(fontSize: 12),
+                          ),
+                          trailing: Text(
+                            st['distance'],
+                            style: GoogleFonts.dmSans(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
                           ),
                         ),
-                        title: Text(
-                          st['name'],
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${st['type']} • ${st['lines']}',
-                          style: GoogleFonts.dmSans(fontSize: 12),
-                        ),
-                        trailing: Text(
-                          st['distance'],
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                      )),
+                      ),
                   ],
                 ),
               );

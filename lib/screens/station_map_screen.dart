@@ -9,28 +9,22 @@ import 'package:http/http.dart' as http;
 class StationMapScreen extends StatefulWidget {
   final String? initialStation;
 
-  const StationMapScreen({
-    super.key,
-    this.initialStation,
-  });
+  const StationMapScreen({super.key, this.initialStation});
 
   @override
-  State<StationMapScreen> createState() =>
-      _StationMapScreenState();
+  State<StationMapScreen> createState() => _StationMapScreenState();
 }
 
 class _StationMapScreenState extends State<StationMapScreen> {
   GoogleMapController? _mapController;
 
-  final TextEditingController _searchController =
-  TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   final FocusNode _searchFocusNode = FocusNode();
 
   Timer? _debounce;
 
-  static const String _placesApiKey =
-  String.fromEnvironment(
+  static const String _placesApiKey = String.fromEnvironment(
     'GOOGLE_PLACES_API_KEY',
   );
 
@@ -67,19 +61,14 @@ class _StationMapScreenState extends State<StationMapScreen> {
           snippet: 'Tap marker to view station',
         ),
         onTap: () {
-          _showStationDetails(
-            station.key,
-            station.value,
-          );
+          _showStationDetails(station.key, station.value);
         },
       );
     }).toSet();
   }
 
   Set<Marker> get _allMarkers {
-    final markers = <Marker>{
-      ..._stationMarkers,
-    };
+    final markers = <Marker>{..._stationMarkers};
 
     if (_searchedPlaceMarker != null) {
       markers.add(_searchedPlaceMarker!);
@@ -97,23 +86,13 @@ class _StationMapScreenState extends State<StationMapScreen> {
 
     if (position == null) return;
 
-    Future.delayed(
-      const Duration(milliseconds: 500),
-          () {
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(
-            position,
-            17,
-          ),
-        );
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _mapController?.animateCamera(CameraUpdate.newLatLngZoom(position, 17));
 
-        if (mounted) {
-          _showSuccessSnackBar(
-            '$stationName shown on map.',
-          );
-        }
-      },
-    );
+      if (mounted) {
+        _showSuccessSnackBar('$stationName shown on map.');
+      }
+    });
   }
 
   // =========================================================
@@ -134,19 +113,14 @@ class _StationMapScreenState extends State<StationMapScreen> {
       return;
     }
 
-    _debounce = Timer(
-      const Duration(milliseconds: 500),
-          () {
-        _searchPlaces(query);
-      },
-    );
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _searchPlaces(query);
+    });
   }
 
   Future<void> _searchPlaces(String query) async {
     if (_placesApiKey.isEmpty) {
-      _showErrorSnackBar(
-        'Google Places API key is not configured.',
-      );
+      _showErrorSnackBar('Google Places API key is not configured.');
       return;
     }
 
@@ -165,7 +139,7 @@ class _StationMapScreenState extends State<StationMapScreen> {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _placesApiKey,
           'X-Goog-FieldMask':
-          'suggestions.placePrediction.placeId,'
+              'suggestions.placePrediction.placeId,'
               'suggestions.placePrediction.text.text',
         },
         body: jsonEncode({
@@ -174,34 +148,24 @@ class _StationMapScreenState extends State<StationMapScreen> {
           'languageCode': 'en',
           'locationBias': {
             'circle': {
-              'center': {
-                'latitude': 3.1390,
-                'longitude': 101.6869,
-              },
+              'center': {'latitude': 3.1390, 'longitude': 101.6869},
               'radius': 60000.0,
             },
           },
         }),
       );
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300) {
-        debugPrint(
-          'Places autocomplete error: ${response.statusCode}',
-        );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint('Places autocomplete error: ${response.statusCode}');
         debugPrint(response.body);
 
-        _showErrorSnackBar(
-          'Unable to search places.',
-        );
+        _showErrorSnackBar('Unable to search places.');
         return;
       }
 
-      final Map<String, dynamic> data =
-      jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
-      final dynamic rawSuggestions =
-      data['suggestions'];
+      final dynamic rawSuggestions = data['suggestions'];
 
       final List<_PlaceSuggestion> results = [];
 
@@ -211,38 +175,25 @@ class _StationMapScreenState extends State<StationMapScreen> {
             continue;
           }
 
-          final prediction =
-          item['placePrediction'];
+          final prediction = item['placePrediction'];
 
-          if (prediction
-          is! Map<String, dynamic>) {
+          if (prediction is! Map<String, dynamic>) {
             continue;
           }
 
-          final String placeId =
-              prediction['placeId']
-                  ?.toString() ??
-                  '';
+          final String placeId = prediction['placeId']?.toString() ?? '';
 
-          final dynamic text =
-          prediction['text'];
+          final dynamic text = prediction['text'];
 
           String description = '';
 
           if (text is Map<String, dynamic>) {
-            description =
-                text['text']
-                    ?.toString() ??
-                    '';
+            description = text['text']?.toString() ?? '';
           }
 
-          if (placeId.isNotEmpty &&
-              description.isNotEmpty) {
+          if (placeId.isNotEmpty && description.isNotEmpty) {
             results.add(
-              _PlaceSuggestion(
-                placeId: placeId,
-                description: description,
-              ),
+              _PlaceSuggestion(placeId: placeId, description: description),
             );
           }
         }
@@ -254,13 +205,9 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _suggestions = results;
       });
     } catch (e) {
-      debugPrint(
-        'Places search error: $e',
-      );
+      debugPrint('Places search error: $e');
 
-      _showErrorSnackBar(
-        'Unable to search places.',
-      );
+      _showErrorSnackBar('Unable to search places.');
     } finally {
       if (mounted) {
         setState(() {
@@ -270,13 +217,9 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  Future<void> _selectPlace(
-      _PlaceSuggestion suggestion,
-      ) async {
+  Future<void> _selectPlace(_PlaceSuggestion suggestion) async {
     if (_placesApiKey.isEmpty) {
-      _showErrorSnackBar(
-        'Google Places API key is not configured.',
-      );
+      _showErrorSnackBar('Google Places API key is not configured.');
       return;
     }
 
@@ -290,7 +233,7 @@ class _StationMapScreenState extends State<StationMapScreen> {
     try {
       final Uri url = Uri.parse(
         'https://places.googleapis.com/v1/places/'
-            '${suggestion.placeId}',
+        '${suggestion.placeId}',
       );
 
       final response = await http.get(
@@ -298,124 +241,76 @@ class _StationMapScreenState extends State<StationMapScreen> {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': _placesApiKey,
-          'X-Goog-FieldMask':
-          'location,displayName,formattedAddress',
+          'X-Goog-FieldMask': 'location,displayName,formattedAddress',
         },
       );
 
-      if (response.statusCode < 200 ||
-          response.statusCode >= 300) {
-        debugPrint(
-          'Place details error: ${response.statusCode}',
-        );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        debugPrint('Place details error: ${response.statusCode}');
         debugPrint(response.body);
 
-        _showErrorSnackBar(
-          'Unable to open this place.',
-        );
+        _showErrorSnackBar('Unable to open this place.');
         return;
       }
 
-      final Map<String, dynamic> data =
-      jsonDecode(response.body);
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
-      final dynamic location =
-      data['location'];
+      final dynamic location = data['location'];
 
-      if (location
-      is! Map<String, dynamic>) {
-        _showErrorSnackBar(
-          'Location information unavailable.',
-        );
+      if (location is! Map<String, dynamic>) {
+        _showErrorSnackBar('Location information unavailable.');
         return;
       }
 
-      final double? latitude =
-      (location['latitude'] as num?)
-          ?.toDouble();
+      final double? latitude = (location['latitude'] as num?)?.toDouble();
 
-      final double? longitude =
-      (location['longitude'] as num?)
-          ?.toDouble();
+      final double? longitude = (location['longitude'] as num?)?.toDouble();
 
-      if (latitude == null ||
-          longitude == null) {
-        _showErrorSnackBar(
-          'Location information unavailable.',
-        );
+      if (latitude == null || longitude == null) {
+        _showErrorSnackBar('Location information unavailable.');
         return;
       }
 
-      String displayName =
-          suggestion.description;
+      String displayName = suggestion.description;
 
-      final dynamic displayNameData =
-      data['displayName'];
+      final dynamic displayNameData = data['displayName'];
 
-      if (displayNameData
-      is Map<String, dynamic>) {
-        final value =
-        displayNameData['text']
-            ?.toString();
+      if (displayNameData is Map<String, dynamic>) {
+        final value = displayNameData['text']?.toString();
 
-        if (value != null &&
-            value.isNotEmpty) {
+        if (value != null && value.isNotEmpty) {
           displayName = value;
         }
       }
 
-      final String address =
-          data['formattedAddress']
-              ?.toString() ??
-              '';
+      final String address = data['formattedAddress']?.toString() ?? '';
 
-      final LatLng placePosition =
-      LatLng(
-        latitude,
-        longitude,
-      );
+      final LatLng placePosition = LatLng(latitude, longitude);
 
       if (!mounted) return;
 
       setState(() {
-        _searchController.text =
-            displayName;
+        _searchController.text = displayName;
 
-        _searchedPlaceMarker =
-            Marker(
-              markerId: MarkerId(
-                'searched_${suggestion.placeId}',
-              ),
-              position: placePosition,
-              icon:
-              BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure,
-              ),
-              infoWindow: InfoWindow(
-                title: displayName,
-                snippet: address,
-              ),
-            );
+        _searchedPlaceMarker = Marker(
+          markerId: MarkerId('searched_${suggestion.placeId}'),
+          position: placePosition,
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          infoWindow: InfoWindow(title: displayName, snippet: address),
+        );
       });
 
       await _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          placePosition,
-          16,
-        ),
+        CameraUpdate.newLatLngZoom(placePosition, 16),
       );
 
-      _showSuccessSnackBar(
-        '$displayName found.',
-      );
+      _showSuccessSnackBar('$displayName found.');
     } catch (e) {
-      debugPrint(
-        'Place details error: $e',
-      );
+      debugPrint('Place details error: $e');
 
-      _showErrorSnackBar(
-        'Unable to open this place.',
-      );
+      _showErrorSnackBar('Unable to open this place.');
     } finally {
       if (mounted) {
         setState(() {
@@ -441,84 +336,55 @@ class _StationMapScreenState extends State<StationMapScreen> {
   // STATION DETAILS
   // =========================================================
 
-  void _showStationDetails(
-      String stationName,
-      LatLng position,
-      ) {
+  void _showStationDetails(String stationName, LatLng position) {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
       builder: (bottomSheetContext) {
         return SafeArea(
           child: Padding(
-            padding:
-            const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
-              mainAxisSize:
-              MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const CircleAvatar(
                   radius: 30,
-                  backgroundColor:
-                  Colors.black,
-                  child: Icon(
-                    Icons.train,
-                    color: Colors.white,
-                    size: 32,
-                  ),
+                  backgroundColor: Colors.black,
+                  child: Icon(Icons.train, color: Colors.white, size: 32),
                 ),
 
                 const SizedBox(height: 12),
 
                 Text(
                   stationName,
-                  style:
-                  const TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
-                    fontWeight:
-                    FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
                 const SizedBox(height: 4),
 
-                const Text(
-                  'Transit Station',
-                ),
+                const Text('Transit Station'),
 
                 const SizedBox(height: 20),
 
                 SizedBox(
                   width: double.infinity,
-                  child:
-                  ElevatedButton.icon(
-                    style:
-                    ElevatedButton.styleFrom(
-                      backgroundColor:
-                      Colors.black,
-                      foregroundColor:
-                      Colors.white,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                     ),
                     onPressed: () {
-                      Navigator.pop(
-                        bottomSheetContext,
-                      );
+                      Navigator.pop(bottomSheetContext);
 
-                      _mapController
-                          ?.animateCamera(
-                        CameraUpdate
-                            .newLatLngZoom(
-                          position,
-                          17,
-                        ),
+                      _mapController?.animateCamera(
+                        CameraUpdate.newLatLngZoom(position, 17),
                       );
                     },
-                    icon: const Icon(
-                      Icons.center_focus_strong,
-                    ),
-                    label: const Text(
-                      'Focus on Station',
-                    ),
+                    icon: const Icon(Icons.center_focus_strong),
+                    label: const Text('Focus on Station'),
                   ),
                 ),
               ],
@@ -541,36 +407,22 @@ class _StationMapScreenState extends State<StationMapScreen> {
     });
 
     try {
-      final bool serviceEnabled =
-      await Geolocator
-          .isLocationServiceEnabled();
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
-        _showErrorSnackBar(
-          'Please turn on location services.',
-        );
+        _showErrorSnackBar('Please turn on location services.');
         return;
       }
 
-      LocationPermission permission =
-      await Geolocator
-          .checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
 
-      if (permission ==
-          LocationPermission.denied) {
-        permission =
-        await Geolocator
-            .requestPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
       }
 
-      if (permission ==
-          LocationPermission.denied ||
-          permission ==
-              LocationPermission
-                  .deniedForever) {
-        _showErrorSnackBar(
-          'Location permission is required.',
-        );
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showErrorSnackBar('Location permission is required.');
         return;
       }
 
@@ -580,36 +432,24 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _locationPermissionGranted = true;
       });
 
-      final Position position =
-      await Geolocator
-          .getCurrentPosition(
-        locationSettings:
-        const LocationSettings(
-          accuracy:
-          LocationAccuracy.high,
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
         ),
       );
 
-      final LatLng currentPosition =
-      LatLng(
+      final LatLng currentPosition = LatLng(
         position.latitude,
         position.longitude,
       );
 
       await _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          currentPosition,
-          17,
-        ),
+        CameraUpdate.newLatLngZoom(currentPosition, 17),
       );
 
-      _showSuccessSnackBar(
-        'Current location found.',
-      );
+      _showSuccessSnackBar('Current location found.');
     } catch (e) {
-      _showErrorSnackBar(
-        'Unable to get your location.',
-      );
+      _showErrorSnackBar('Unable to get your location.');
     } finally {
       if (mounted) {
         setState(() {
@@ -619,33 +459,19 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  void _showSuccessSnackBar(
-      String message,
-      ) {
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.green,
-        behavior:
-        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle,
-              color: Colors.white,
-            ),
+            const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -653,33 +479,19 @@ class _StationMapScreenState extends State<StationMapScreen> {
     );
   }
 
-  void _showErrorSnackBar(
-      String message,
-      ) {
-    ScaffoldMessenger.of(context)
-        .hideCurrentSnackBar();
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: Colors.red,
-        behavior:
-        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(
-              Icons.error,
-              color: Colors.white,
-            ),
+            const Icon(Icons.error, color: Colors.white),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                message,
-                style:
-                const TextStyle(
-                  color: Colors.white,
-                ),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -688,42 +500,26 @@ class _StationMapScreenState extends State<StationMapScreen> {
   }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title:
-        const Text(
-          'Explore Stations',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Explore Stations')),
 
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition:
-            const CameraPosition(
-              target:
-              LatLng(
-                3.1450,
-                101.7000,
-              ),
+            initialCameraPosition: const CameraPosition(
+              target: LatLng(3.1450, 101.7000),
               zoom: 12.5,
             ),
 
             markers: _allMarkers,
 
-            myLocationEnabled:
-            _locationPermissionGranted,
+            myLocationEnabled: _locationPermissionGranted,
 
-            myLocationButtonEnabled:
-            false,
+            myLocationButtonEnabled: false,
 
-            onMapCreated:
-                (controller) {
-              _mapController =
-                  controller;
+            onMapCreated: (controller) {
+              _mapController = controller;
 
               _focusInitialStation();
             },
@@ -736,67 +532,34 @@ class _StationMapScreenState extends State<StationMapScreen> {
             right: 14,
             child: Material(
               elevation: 6,
-              borderRadius:
-              BorderRadius.circular(
-                14,
-              ),
+              borderRadius: BorderRadius.circular(14),
               child: TextField(
-                controller:
-                _searchController,
-                focusNode:
-                _searchFocusNode,
-                onChanged:
-                _onSearchChanged,
-                decoration:
-                InputDecoration(
-                  hintText:
-                  'Search places in Malaysia...',
-                  prefixIcon:
-                  const Icon(
-                    Icons.search,
-                  ),
-                  suffixIcon:
-                  _searchingPlaces
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Search places in Malaysia...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchingPlaces
                       ? const Padding(
-                    padding:
-                    EdgeInsets.all(
-                      14,
-                    ),
-                    child:
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child:
-                      CircularProgressIndicator(
-                        strokeWidth:
-                        2,
-                      ),
-                    ),
-                  )
-                      : _searchController
-                      .text
-                      .isNotEmpty
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : _searchController.text.isNotEmpty
                       ? IconButton(
-                    onPressed:
-                    _clearSearch,
-                    icon:
-                    const Icon(
-                      Icons.clear,
-                    ),
-                  )
+                          onPressed: _clearSearch,
+                          icon: const Icon(Icons.clear),
+                        )
                       : null,
                   filled: true,
-                  fillColor:
-                  Colors.white,
-                  border:
-                  OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius
-                        .circular(
-                      14,
-                    ),
-                    borderSide:
-                    BorderSide.none,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
@@ -810,63 +573,27 @@ class _StationMapScreenState extends State<StationMapScreen> {
               right: 14,
               child: Material(
                 elevation: 8,
-                borderRadius:
-                BorderRadius.circular(
-                  14,
-                ),
-                clipBehavior:
-                Clip.antiAlias,
-                child:
-                ConstrainedBox(
-                  constraints:
-                  const BoxConstraints(
-                    maxHeight: 260,
-                  ),
-                  child:
-                  ListView.separated(
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 260),
+                  child: ListView.separated(
                     shrinkWrap: true,
-                    itemCount:
-                    _suggestions
-                        .length,
-                    separatorBuilder:
-                        (
-                        context,
-                        index,
-                        ) =>
-                    const Divider(
-                      height: 1,
-                    ),
-                    itemBuilder:
-                        (
-                        context,
-                        index,
-                        ) {
-                      final suggestion =
-                      _suggestions[
-                      index];
+                    itemCount: _suggestions.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final suggestion = _suggestions[index];
 
                       return ListTile(
-                        tileColor:
-                        Colors.white,
-                        leading:
-                        const Icon(
-                          Icons.place,
-                          color:
-                          Colors.black,
-                        ),
+                        tileColor: Colors.white,
+                        leading: const Icon(Icons.place, color: Colors.black),
                         title: Text(
-                          suggestion
-                              .description,
-                          style:
-                          const TextStyle(
-                            color:
-                            Colors.black,
-                          ),
+                          suggestion.description,
+                          style: const TextStyle(color: Colors.black),
                         ),
                         onTap: () {
-                          _selectPlace(
-                            suggestion,
-                          );
+                          _selectPlace(suggestion);
                         },
                       );
                     },
@@ -880,48 +607,26 @@ class _StationMapScreenState extends State<StationMapScreen> {
               top: 78,
               left: 16,
               child: Container(
-                padding:
-                const EdgeInsets
-                    .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 9,
                 ),
-                decoration:
-                BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    20,
-                  ),
-                  boxShadow:
-                  const [
-                    BoxShadow(
-                      blurRadius: 5,
-                      color:
-                      Colors.black26,
-                    ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 5, color: Colors.black26),
                   ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.train,
-                      color:
-                      Colors.black,
-                    ),
-                    const SizedBox(
-                      width: 7,
-                    ),
+                    const Icon(Icons.train, color: Colors.black),
+                    const SizedBox(width: 7),
                     Text(
                       '${stationLocations.length} stations',
-                      style:
-                      const TextStyle(
-                        color:
-                        Colors.black,
-                        fontWeight:
-                        FontWeight
-                            .w600,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -932,36 +637,21 @@ class _StationMapScreenState extends State<StationMapScreen> {
           Positioned(
             right: 16,
             bottom: 30,
-            child:
-            FloatingActionButton
-                .extended(
-              backgroundColor:
-              Colors.black,
-              foregroundColor:
-              Colors.white,
-              onPressed:
-              _gettingLocation
-                  ? null
-                  : _goToMyLocation,
+            child: FloatingActionButton.extended(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              onPressed: _gettingLocation ? null : _goToMyLocation,
               icon: _gettingLocation
                   ? const SizedBox(
-                width: 20,
-                height: 20,
-                child:
-                CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color:
-                  Colors.white,
-                ),
-              )
-                  : const Icon(
-                Icons.my_location,
-              ),
-              label: Text(
-                _gettingLocation
-                    ? 'Locating...'
-                    : 'My Location',
-              ),
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.my_location),
+              label: Text(_gettingLocation ? 'Locating...' : 'My Location'),
             ),
           ),
         ],
@@ -983,8 +673,5 @@ class _PlaceSuggestion {
   final String placeId;
   final String description;
 
-  const _PlaceSuggestion({
-    required this.placeId,
-    required this.description,
-  });
+  const _PlaceSuggestion({required this.placeId, required this.description});
 }

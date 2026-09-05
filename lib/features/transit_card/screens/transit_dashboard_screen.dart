@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models/transit_card_model.dart';
 import '../services/card_database_service.dart';
-import '../services/fare_calculation_service.dart';
+import '../services/transit_card_cloud_service.dart';
 import '../../live_arrivals/services/gtfs_service.dart';
 
 const Color appYellow = Color(0xFFFCEB00);
@@ -17,40 +17,18 @@ class TransitDashboardScreen extends StatefulWidget {
 
 class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
   final _dbService = CardDatabaseService.instance;
+  final _cloudService = TransitCardCloudService();
   final _gtfsService = GtfsService();
+
   List<TransitArrival> _liveArrivals = [];
   bool _loadingArrivals = false;
+
   // Transit Cards State
   List<TransitCard> _cards = [];
-  TransitCard? _selectedCardForTrip;
   bool _loadingCards = true;
-
-  // Fare Calculator State
-  int _hops = 4;
-  String _selectedCardType = 'OKU Concession';
-  double _calculatedFare = 0.0;
 
   // Schedules & Transport Mode State
   String _selectedType = 'LRT';
-  final Map<String, List<Map<String, String>>> _schedulesData = {
-    'LRT': [
-      {'line': 'Kelana Jaya Line', 'dest': 'Gombak', 'time': '2 mins', 'stepFree': 'Yes'},
-      {'line': 'Ampang Line', 'dest': 'Sentul Timur', 'time': '5 mins', 'stepFree': 'Yes'},
-      {'line': 'Sri Petaling Line', 'dest': 'Putra Heights', 'time': '9 mins', 'stepFree': 'Yes'},
-    ],
-    'MRT': [
-      {'line': 'Kajang Line', 'dest': 'Kwasa Damansara', 'time': '3 mins', 'stepFree': 'Yes'},
-      {'line': 'Putrajaya Line', 'dest': 'Putrajaya Sentral', 'time': '6 mins', 'stepFree': 'Yes'},
-    ],
-    'Rapid Bus': [
-      {'line': 'Route 600', 'dest': 'Puchong Utama', 'time': '4 mins', 'stepFree': 'Yes'},
-      {'line': 'Route 750', 'dest': 'UiTM Shah Alam', 'time': '12 mins', 'stepFree': 'Yes'},
-    ],
-    'KTM': [
-      {'line': 'Seremban Line', 'dest': 'Batu Caves', 'time': '15 mins', 'stepFree': 'No'},
-      {'line': 'Port Klang Line', 'dest': 'Tanjung Malim', 'time': '22 mins', 'stepFree': 'No'},
-    ],
-  };
 
   @override
   void initState() {
@@ -65,13 +43,6 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
     if (!mounted) return;
     setState(() {
       _cards = cards;
-      if (_cards.isNotEmpty && _selectedCardForTrip == null) {
-        _selectedCardForTrip = _cards.first;
-      }
-      _calculatedFare = FareCalculationService.calculateFare(
-        stationHops: _hops,
-        cardType: _selectedCardType,
-      );
       _loadingCards = false;
     });
   }
@@ -86,56 +57,10 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
     });
   }
 
-  Future<void> _simulateTripPayment() async {
-    if (_cards.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add a transit card first.')),
-      );
-      return;
-    }
-
-    final cardToCharge = _selectedCardForTrip ?? _cards.first;
-
-    if (cardToCharge.balance < _calculatedFare) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Insufficient balance on ${cardToCharge.cardName}! Fare: RM ${_calculatedFare.toStringAsFixed(2)}, Balance: RM ${cardToCharge.balance.toStringAsFixed(2)}',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final updatedBalance = cardToCharge.balance - _calculatedFare;
-    await _dbService.updateBalance(cardToCharge.id!, updatedBalance);
-
-    await _dbService.logTransaction(
-      cardId: cardToCharge.id!,
-      title: 'Fare Payment ($_hops stops)',
-      amount: _calculatedFare,
-      type: 'FARE',
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Fare paid: RM ${_calculatedFare.toStringAsFixed(2)}. Remaining: RM ${updatedBalance.toStringAsFixed(2)}',
-        ),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    _loadCardsData();
-  }
-
   void _showCardActions(TransitCard card) async {
     final topUpCtrl = TextEditingController();
     List<CardTransaction> transactions = [];
 
-    // Safely attempt to fetch transactions without blocking the modal
     if (card.id != null) {
       try {
         transactions = await _dbService.getTransactionsByCard(card.id!);
@@ -149,6 +74,9 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -167,9 +95,12 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    card.cardName,
-                    style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      card.cardName,
+                      style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -177,6 +108,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                     onPressed: () async {
                       if (card.id != null) {
                         await _dbService.deleteCard(card.id!);
+                        await _cloudService.deleteCardFromCloud(card.id!);
                         if (ctx.mounted) Navigator.pop(ctx);
                         _loadCardsData();
                       }
@@ -208,10 +140,20 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                         '+ RM $amount',
                         style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
                       ),
-                      backgroundColor: appYellow.withOpacity(0.3),
+                      backgroundColor: appYellow.withValues(alpha: 0.3),
                       onPressed: () async {
                         if (card.id != null) {
-                          await _dbService.updateBalance(card.id!, card.balance + amount);
+                          final newBal = card.balance + amount;
+                          await _dbService.updateBalance(card.id!, newBal);
+                          await _cloudService.syncCardToCloud(
+                            TransitCard(
+                              id: card.id,
+                              cardName: card.cardName,
+                              cardNumber: card.cardNumber,
+                              balance: newBal,
+                              cardType: card.cardType,
+                            ),
+                          );
                           try {
                             await _dbService.logTransaction(
                               cardId: card.id!,
@@ -249,7 +191,17 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   onPressed: () async {
                     final amount = double.tryParse(topUpCtrl.text.trim()) ?? 0.0;
                     if (amount > 0 && card.id != null) {
-                      await _dbService.updateBalance(card.id!, card.balance + amount);
+                      final newBal = card.balance + amount;
+                      await _dbService.updateBalance(card.id!, newBal);
+                      await _cloudService.syncCardToCloud(
+                        TransitCard(
+                          id: card.id,
+                          cardName: card.cardName,
+                          cardNumber: card.cardNumber,
+                          balance: newBal,
+                          cardType: card.cardType,
+                        ),
+                      );
                       try {
                         await _dbService.logTransaction(
                           cardId: card.id!,
@@ -277,29 +229,37 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   style: GoogleFonts.dmSans(color: Colors.grey, fontSize: 13),
                 )
               else
-                ...transactions.map((tx) {
-                  final isTopUp = tx.type == 'TOP_UP';
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      isTopUp ? Icons.arrow_downward : Icons.arrow_upward,
-                      color: isTopUp ? Colors.green : Colors.red,
-                    ),
-                    title: Text(
-                      tx.title,
-                      style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(tx.date, style: GoogleFonts.dmSans(fontSize: 11)),
-                    trailing: Text(
-                      '${isTopUp ? '+' : '-'} RM ${tx.amount.toStringAsFixed(2)}',
-                      style: GoogleFonts.dmSans(
-                        fontWeight: FontWeight.bold,
-                        color: isTopUp ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  );
-                }),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: transactions.length,
+                    itemBuilder: (context, idx) {
+                      final tx = transactions[idx];
+                      final isTopUp = tx.type == 'TOP_UP';
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          isTopUp ? Icons.arrow_downward : Icons.arrow_upward,
+                          color: isTopUp ? Colors.green : Colors.red,
+                        ),
+                        title: Text(
+                          tx.title,
+                          style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(tx.date, style: GoogleFonts.dmSans(fontSize: 11)),
+                        trailing: Text(
+                          '${isTopUp ? '+' : '-'} RM ${tx.amount.toStringAsFixed(2)}',
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.bold,
+                            color: isTopUp ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
         ),
@@ -337,7 +297,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: type,
+                  initialValue: type,
                   items: const [
                     DropdownMenuItem(value: 'Standard Adult', child: Text('Standard Adult')),
                     DropdownMenuItem(value: 'OKU Concession', child: Text('OKU Concession (50% Off)')),
@@ -367,7 +327,16 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                     balance: double.tryParse(balCtrl.text.trim()) ?? 0.0,
                     cardType: type,
                   );
-                  await _dbService.insertCard(newCard);
+                  final insertedId = await _dbService.insertCard(newCard);
+                  final cardWithId = TransitCard(
+                    id: insertedId,
+                    cardName: newCard.cardName,
+                    cardNumber: newCard.cardNumber,
+                    balance: newCard.balance,
+                    cardType: newCard.cardType,
+                  );
+                  await _cloudService.syncCardToCloud(cardWithId);
+
                   if (ctx.mounted) Navigator.pop(ctx);
                   _loadCardsData();
                 }
@@ -382,8 +351,6 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeSchedules = _schedulesData[_selectedType] ?? [];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schedules & Cards'),
@@ -434,18 +401,19 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               itemBuilder: (ctx, i) {
                 final card = _cards[i];
                 final isOku = card.cardType.contains('OKU');
+
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () => _showCardActions(card),
                   child: Container(
-                    width: 250,
+                    width: 270,
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isOku ? Colors.black : const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isOku ? appYellow : Colors.grey.shade700,
+                        color: isOku ? appYellow : Colors.grey.shade800,
                         width: 1.5,
                       ),
                     ),
@@ -454,29 +422,47 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              card.cardName,
-                              style: GoogleFonts.dmSans(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: appYellow,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                            Expanded(
                               child: Text(
-                                card.cardType,
+                                card.cardName,
                                 style: GoogleFonts.dmSans(
-                                  color: Colors.black,
-                                  fontSize: 10,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
+                            ),
+                            const SizedBox(width: 6),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: appYellow,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    card.cardType,
+                                    style: GoogleFonts.dmSans(
+                                      color: Colors.black,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4.0),
+                                  child: Icon(
+                                    Icons.more_vert,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -488,121 +474,35 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Text(
-                          card.cardNumber,
-                          style: GoogleFonts.dmSans(color: Colors.grey, fontSize: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              card.cardNumber,
+                              style: GoogleFonts.dmSans(
+                                  color: Colors.grey, fontSize: 12),
+                            ),
+                            const Text(
+                              'Manage',
+                              style: TextStyle(
+                                color: appYellow,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 );
               },
-            )
-          ),
-
-          const SizedBox(height: 24),
-
-          // 2. FARE RATE ESTIMATOR & SIMULATION
-          Text(
-            'Quick Fare Rate Estimator',
-            style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            color: Colors.white,
-            elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Distance: $_hops stops',
-                          style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: appYellow,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'Est. Fare: RM ${_calculatedFare.toStringAsFixed(2)}',
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    min: 1,
-                    max: 20,
-                    divisions: 19,
-                    activeColor: Colors.black,
-                    inactiveColor: Colors.grey.shade300,
-                    value: _hops.toDouble(),
-                    onChanged: (val) {
-                      setState(() {
-                        _hops = val.toInt();
-                        _calculatedFare = FareCalculationService.calculateFare(
-                          stationHops: _hops,
-                          cardType: _selectedCardType,
-                        );
-                      });
-                    },
-                  ),
-                  DropdownButton<String>(
-                    value: _selectedCardType,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(value: 'Standard Adult', child: Text('Standard Adult Rate')),
-                      DropdownMenuItem(value: 'OKU Concession', child: Text('OKU Concession (50% Off)')),
-                      DropdownMenuItem(value: 'Student', child: Text('Student Rate (50% Off)')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedCardType = val;
-                          _calculatedFare = FareCalculationService.calculateFare(
-                            stationHops: _hops,
-                            cardType: _selectedCardType,
-                          );
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: appYellow,
-                      ),
-                      icon: const Icon(Icons.payment, size: 18),
-                      label: Text(
-                        'Simulate Pay Fare (RM ${_calculatedFare.toStringAsFixed(2)})',
-                        style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: _simulateTripPayment,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // 3. SEGMENTED TRANSPORT MODE & SCHEDULE LIST
+          // 2. SEGMENTED TRANSPORT MODE & SCHEDULE LIST
           Text(
             'Select Transport Mode',
             style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
@@ -625,23 +525,41 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$_selectedType Live Schedules',
-                style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  '$_selectedType',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                tooltip: 'Refresh live arrivals',
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                constraints: const BoxConstraints(),
+                onPressed: () => _loadSchedules(_selectedType),
+              ),
+              const SizedBox(width: 8),
               Chip(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
                 label: Text(
-                  '${activeSchedules.length} Routes',
-                  style: GoogleFonts.dmSans(color: Colors.black, fontWeight: FontWeight.bold),
+                  '${_liveArrivals.length} Arrivals',
+                  style: GoogleFonts.dmSans(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 backgroundColor: appYellow,
               ),
             ],
           ),
           const SizedBox(height: 12),
-
           if (_loadingArrivals)
             const Center(
               child: Padding(
@@ -696,7 +614,8 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   ],
                 ),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: appYellow,
                     borderRadius: BorderRadius.circular(8),

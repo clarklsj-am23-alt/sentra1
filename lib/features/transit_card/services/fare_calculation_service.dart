@@ -16,11 +16,14 @@ class FareCalculationService {
       baseFare += (3 * 0.30) + (5 * 0.25) + ((stationHops - 8) * 0.18);
     }
 
+    double finalFare = baseFare;
+
     // Apply Concession Discounts
     if (cardType == 'OKU Concession' || cardType == 'Student') {
-      return baseFare * 0.50; // 50% concession discount
+      finalFare = baseFare * 0.50; // 50% concession discount
     }
 
-    return baseFare;
+    // Round to 2 decimal places to eliminate floating-point precision drift
+    return double.parse(finalFare.toStringAsFixed(2));
   }
 }

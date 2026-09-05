@@ -1,9 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 
 class StationMapScreen extends StatefulWidget {
-  const StationMapScreen({super.key});
+  final String? initialStation;
+
+  const StationMapScreen({
+    super.key,
+    this.initialStation,
+  });
 
   @override
   State<StationMapScreen> createState() =>
@@ -13,79 +22,419 @@ class StationMapScreen extends StatefulWidget {
 class _StationMapScreenState extends State<StationMapScreen> {
   GoogleMapController? _mapController;
 
+  final TextEditingController _searchController =
+  TextEditingController();
+
+  final FocusNode _searchFocusNode = FocusNode();
+
+  Timer? _debounce;
+
+  static const String _placesApiKey =
+  String.fromEnvironment(
+    'GOOGLE_PLACES_API_KEY',
+  );
+
   bool _locationPermissionGranted = false;
   bool _gettingLocation = false;
+  bool _searchingPlaces = false;
 
-  // =========================================================
-  // STATION LOCATIONS
-  // Same station list as Station Facilities
-  // =========================================================
+  List<_PlaceSuggestion> _suggestions = [];
+
+  Marker? _searchedPlaceMarker;
 
   final Map<String, LatLng> stationLocations = {
-    'KL Sentral': const LatLng(
-      3.1343,
-      101.6861,
-    ),
-
-    'Pasar Seni': const LatLng(
-      3.1424,
-      101.6953,
-    ),
-
-    'Bukit Bintang': const LatLng(
-      3.1467,
-      101.7107,
-    ),
-
-    'Muzium Negara': const LatLng(
-      3.1374,
-      101.6871,
-    ),
-
-    'Masjid Jamek': const LatLng(
-      3.1492,
-      101.6966,
-    ),
-
-    'Titiwangsa': const LatLng(
-      3.1735,
-      101.6954,
-    ),
-
-    'Maluri': const LatLng(
-      3.1234,
-      101.7270,
-    ),
+    'KL Sentral': const LatLng(3.1343, 101.6861),
+    'Pasar Seni': const LatLng(3.1424, 101.6953),
+    'Bukit Bintang': const LatLng(3.1467, 101.7107),
+    'Muzium Negara': const LatLng(3.1374, 101.6871),
+    'Masjid Jamek': const LatLng(3.1492, 101.6966),
+    'Titiwangsa': const LatLng(3.1735, 101.6954),
+    'Maluri': const LatLng(3.1234, 101.7270),
   };
 
-  // =========================================================
-  // MARKERS
-  // =========================================================
+  @override
+  void initState() {
+    super.initState();
+  }
 
   Set<Marker> get _stationMarkers {
-    return stationLocations.entries.map(
-          (station) {
-        return Marker(
-          markerId: MarkerId(
+    return stationLocations.entries.map((station) {
+      return Marker(
+        markerId: MarkerId(station.key),
+        position: station.value,
+        infoWindow: InfoWindow(
+          title: station.key,
+          snippet: 'Tap marker to view station',
+        ),
+        onTap: () {
+          _showStationDetails(
             station.key,
-          ),
-          position: station.value,
+            station.value,
+          );
+        },
+      );
+    }).toSet();
+  }
 
-          infoWindow: InfoWindow(
-            title: station.key,
-            snippet:
-            'Tap to view station location',
-          ),
+  Set<Marker> get _allMarkers {
+    final markers = <Marker>{
+      ..._stationMarkers,
+    };
 
-          onTap: () {
-            _showStationDetails(
-              station.key,
-              station.value,
-            );
-          },
+    if (_searchedPlaceMarker != null) {
+      markers.add(_searchedPlaceMarker!);
+    }
+
+    return markers;
+  }
+
+  void _focusInitialStation() {
+    final stationName = widget.initialStation;
+
+    if (stationName == null) return;
+
+    final position = stationLocations[stationName];
+
+    if (position == null) return;
+
+    Future.delayed(
+      const Duration(milliseconds: 500),
+          () {
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(
+            position,
+            17,
+          ),
         );
+
+        if (mounted) {
+          _showSuccessSnackBar(
+            '$stationName shown on map.',
+          );
+        }
       },
-    ).toSet();
+    );
+  }
+
+  // =========================================================
+  // GOOGLE PLACES
+  // =========================================================
+
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+
+    final query = value.trim();
+
+    if (query.length < 2) {
+      setState(() {
+        _suggestions = [];
+        _searchingPlaces = false;
+      });
+
+      return;
+    }
+
+    _debounce = Timer(
+      const Duration(milliseconds: 500),
+          () {
+        _searchPlaces(query);
+      },
+    );
+  }
+
+  Future<void> _searchPlaces(String query) async {
+    if (_placesApiKey.isEmpty) {
+      _showErrorSnackBar(
+        'Google Places API key is not configured.',
+      );
+      return;
+    }
+
+    setState(() {
+      _searchingPlaces = true;
+    });
+
+    try {
+      final Uri url = Uri.parse(
+        'https://places.googleapis.com/v1/places:autocomplete',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _placesApiKey,
+          'X-Goog-FieldMask':
+          'suggestions.placePrediction.placeId,'
+              'suggestions.placePrediction.text.text',
+        },
+        body: jsonEncode({
+          'input': query,
+          'includedRegionCodes': ['my'],
+          'languageCode': 'en',
+          'locationBias': {
+            'circle': {
+              'center': {
+                'latitude': 3.1390,
+                'longitude': 101.6869,
+              },
+              'radius': 60000.0,
+            },
+          },
+        }),
+      );
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300) {
+        debugPrint(
+          'Places autocomplete error: ${response.statusCode}',
+        );
+        debugPrint(response.body);
+
+        _showErrorSnackBar(
+          'Unable to search places.',
+        );
+        return;
+      }
+
+      final Map<String, dynamic> data =
+      jsonDecode(response.body);
+
+      final dynamic rawSuggestions =
+      data['suggestions'];
+
+      final List<_PlaceSuggestion> results = [];
+
+      if (rawSuggestions is List) {
+        for (final item in rawSuggestions) {
+          if (item is! Map<String, dynamic>) {
+            continue;
+          }
+
+          final prediction =
+          item['placePrediction'];
+
+          if (prediction
+          is! Map<String, dynamic>) {
+            continue;
+          }
+
+          final String placeId =
+              prediction['placeId']
+                  ?.toString() ??
+                  '';
+
+          final dynamic text =
+          prediction['text'];
+
+          String description = '';
+
+          if (text is Map<String, dynamic>) {
+            description =
+                text['text']
+                    ?.toString() ??
+                    '';
+          }
+
+          if (placeId.isNotEmpty &&
+              description.isNotEmpty) {
+            results.add(
+              _PlaceSuggestion(
+                placeId: placeId,
+                description: description,
+              ),
+            );
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _suggestions = results;
+      });
+    } catch (e) {
+      debugPrint(
+        'Places search error: $e',
+      );
+
+      _showErrorSnackBar(
+        'Unable to search places.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _searchingPlaces = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _selectPlace(
+      _PlaceSuggestion suggestion,
+      ) async {
+    if (_placesApiKey.isEmpty) {
+      _showErrorSnackBar(
+        'Google Places API key is not configured.',
+      );
+      return;
+    }
+
+    setState(() {
+      _searchingPlaces = true;
+      _suggestions = [];
+    });
+
+    _searchFocusNode.unfocus();
+
+    try {
+      final Uri url = Uri.parse(
+        'https://places.googleapis.com/v1/places/'
+            '${suggestion.placeId}',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': _placesApiKey,
+          'X-Goog-FieldMask':
+          'location,displayName,formattedAddress',
+        },
+      );
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300) {
+        debugPrint(
+          'Place details error: ${response.statusCode}',
+        );
+        debugPrint(response.body);
+
+        _showErrorSnackBar(
+          'Unable to open this place.',
+        );
+        return;
+      }
+
+      final Map<String, dynamic> data =
+      jsonDecode(response.body);
+
+      final dynamic location =
+      data['location'];
+
+      if (location
+      is! Map<String, dynamic>) {
+        _showErrorSnackBar(
+          'Location information unavailable.',
+        );
+        return;
+      }
+
+      final double? latitude =
+      (location['latitude'] as num?)
+          ?.toDouble();
+
+      final double? longitude =
+      (location['longitude'] as num?)
+          ?.toDouble();
+
+      if (latitude == null ||
+          longitude == null) {
+        _showErrorSnackBar(
+          'Location information unavailable.',
+        );
+        return;
+      }
+
+      String displayName =
+          suggestion.description;
+
+      final dynamic displayNameData =
+      data['displayName'];
+
+      if (displayNameData
+      is Map<String, dynamic>) {
+        final value =
+        displayNameData['text']
+            ?.toString();
+
+        if (value != null &&
+            value.isNotEmpty) {
+          displayName = value;
+        }
+      }
+
+      final String address =
+          data['formattedAddress']
+              ?.toString() ??
+              '';
+
+      final LatLng placePosition =
+      LatLng(
+        latitude,
+        longitude,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _searchController.text =
+            displayName;
+
+        _searchedPlaceMarker =
+            Marker(
+              markerId: MarkerId(
+                'searched_${suggestion.placeId}',
+              ),
+              position: placePosition,
+              icon:
+              BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueAzure,
+              ),
+              infoWindow: InfoWindow(
+                title: displayName,
+                snippet: address,
+              ),
+            );
+      });
+
+      await _mapController?.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          placePosition,
+          16,
+        ),
+      );
+
+      _showSuccessSnackBar(
+        '$displayName found.',
+      );
+    } catch (e) {
+      debugPrint(
+        'Place details error: $e',
+      );
+
+      _showErrorSnackBar(
+        'Unable to open this place.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _searchingPlaces = false;
+        });
+      }
+    }
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+
+    setState(() {
+      _suggestions = [];
+      _searchedPlaceMarker = null;
+    });
   }
 
   // =========================================================
@@ -100,84 +449,80 @@ class _StationMapScreenState extends State<StationMapScreen> {
       context: context,
       showDragHandle: true,
       builder: (bottomSheetContext) {
-        return Padding(
-          padding:
-          const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize:
-            MainAxisSize.min,
-            children: [
-              const CircleAvatar(
-                radius: 28,
-                child: Icon(
-                  Icons.train,
-                  size: 30,
-                ),
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              Text(
-                stationName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight:
-                  FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(
-                height: 6,
-              ),
-
-              const Text(
-                'Transit Station',
-              ),
-
-              const SizedBox(
-                height: 20,
-              ),
-
-              SizedBox(
-                width:
-                double.infinity,
-                child:
-                ElevatedButton.icon(
-                  style: ElevatedButton
-                      .styleFrom(
-                    backgroundColor:
-                    Colors.black,
-                    foregroundColor:
-                    Colors.white,
-                  ),
-
-                  onPressed: () {
-                    Navigator.pop(
-                      bottomSheetContext,
-                    );
-
-                    _mapController
-                        ?.animateCamera(
-                      CameraUpdate
-                          .newLatLngZoom(
-                        position,
-                        17,
-                      ),
-                    );
-                  },
-
-                  icon: const Icon(
-                    Icons.location_on,
-                  ),
-
-                  label: const Text(
-                    'Focus on Station',
+        return SafeArea(
+          child: Padding(
+            padding:
+            const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize:
+              MainAxisSize.min,
+              children: [
+                const CircleAvatar(
+                  radius: 30,
+                  backgroundColor:
+                  Colors.black,
+                  child: Icon(
+                    Icons.train,
+                    color: Colors.white,
+                    size: 32,
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 12),
+
+                Text(
+                  stationName,
+                  style:
+                  const TextStyle(
+                    fontSize: 22,
+                    fontWeight:
+                    FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                const Text(
+                  'Transit Station',
+                ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child:
+                  ElevatedButton.icon(
+                    style:
+                    ElevatedButton.styleFrom(
+                      backgroundColor:
+                      Colors.black,
+                      foregroundColor:
+                      Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(
+                        bottomSheetContext,
+                      );
+
+                      _mapController
+                          ?.animateCamera(
+                        CameraUpdate
+                            .newLatLngZoom(
+                          position,
+                          17,
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.center_focus_strong,
+                    ),
+                    label: const Text(
+                      'Focus on Station',
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -196,7 +541,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
     });
 
     try {
-      // Check if GPS is enabled
       final bool serviceEnabled =
       await Geolocator
           .isLocationServiceEnabled();
@@ -205,11 +549,9 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _showErrorSnackBar(
           'Please turn on location services.',
         );
-
         return;
       }
 
-      // Check permission
       LocationPermission permission =
       await Geolocator
           .checkPermission();
@@ -229,16 +571,15 @@ class _StationMapScreenState extends State<StationMapScreen> {
         _showErrorSnackBar(
           'Location permission is required.',
         );
-
         return;
       }
 
+      if (!mounted) return;
+
       setState(() {
-        _locationPermissionGranted =
-        true;
+        _locationPermissionGranted = true;
       });
 
-      // Get real current location
       final Position position =
       await Geolocator
           .getCurrentPosition(
@@ -255,15 +596,12 @@ class _StationMapScreenState extends State<StationMapScreen> {
         position.longitude,
       );
 
-      await _mapController
-          ?.animateCamera(
+      await _mapController?.animateCamera(
         CameraUpdate.newLatLngZoom(
           currentPosition,
           17,
         ),
       );
-
-      if (!mounted) return;
 
       _showSuccessSnackBar(
         'Current location found.',
@@ -281,23 +619,16 @@ class _StationMapScreenState extends State<StationMapScreen> {
     }
   }
 
-  // =========================================================
-  // SUCCESS SNACKBAR
-  // =========================================================
-
   void _showSuccessSnackBar(
       String message,
       ) {
-    if (!mounted) return;
-
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.green,
+        backgroundColor: Colors.green,
         behavior:
         SnackBarBehavior.floating,
         content: Row(
@@ -306,18 +637,13 @@ class _StationMapScreenState extends State<StationMapScreen> {
               Icons.check_circle,
               color: Colors.white,
             ),
-
-            const SizedBox(
-              width: 10,
-            ),
-
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
                 style:
                 const TextStyle(
-                  color:
-                  Colors.white,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -327,23 +653,16 @@ class _StationMapScreenState extends State<StationMapScreen> {
     );
   }
 
-  // =========================================================
-  // ERROR SNACKBAR
-  // =========================================================
-
   void _showErrorSnackBar(
       String message,
       ) {
-    if (!mounted) return;
-
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context)
         .showSnackBar(
       SnackBar(
-        backgroundColor:
-        Colors.red,
+        backgroundColor: Colors.red,
         behavior:
         SnackBarBehavior.floating,
         content: Row(
@@ -352,18 +671,13 @@ class _StationMapScreenState extends State<StationMapScreen> {
               Icons.error,
               color: Colors.white,
             ),
-
-            const SizedBox(
-              width: 10,
-            ),
-
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 message,
                 style:
                 const TextStyle(
-                  color:
-                  Colors.white,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -372,10 +686,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // BUILD
-  // =========================================================
 
   @override
   Widget build(
@@ -385,7 +695,7 @@ class _StationMapScreenState extends State<StationMapScreen> {
       appBar: AppBar(
         title:
         const Text(
-          'Station Map',
+          'Explore Stations',
         ),
       ),
 
@@ -394,21 +704,15 @@ class _StationMapScreenState extends State<StationMapScreen> {
           GoogleMap(
             initialCameraPosition:
             const CameraPosition(
-              target: LatLng(
+              target:
+              LatLng(
                 3.1450,
                 101.7000,
               ),
               zoom: 12.5,
             ),
 
-            markers:
-            _stationMarkers,
-
-            mapType:
-            MapType.normal,
-
-            zoomControlsEnabled:
-            true,
+            markers: _allMarkers,
 
             myLocationEnabled:
             _locationPermissionGranted,
@@ -420,85 +724,225 @@ class _StationMapScreenState extends State<StationMapScreen> {
                 (controller) {
               _mapController =
                   controller;
+
+              _focusInitialStation();
             },
           ),
 
-          // =================================================
-          // STATION COUNT
-          // =================================================
-
+          // SEARCH BAR
           Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              padding:
-              const EdgeInsets
-                  .symmetric(
-                horizontal: 14,
-                vertical: 9,
+            top: 14,
+            left: 14,
+            right: 14,
+            child: Material(
+              elevation: 6,
+              borderRadius:
+              BorderRadius.circular(
+                14,
               ),
-              decoration:
-              BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                BorderRadius
-                    .circular(
-                  20,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 5,
-                    color:
-                    Colors.black26,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
+              child: TextField(
+                controller:
+                _searchController,
+                focusNode:
+                _searchFocusNode,
+                onChanged:
+                _onSearchChanged,
+                decoration:
+                InputDecoration(
+                  hintText:
+                  'Search places in Malaysia...',
+                  prefixIcon:
                   const Icon(
-                    Icons.train,
-                    size: 20,
+                    Icons.search,
                   ),
-
-                  const SizedBox(
-                    width: 7,
-                  ),
-
-                  Text(
-                    '${stationLocations.length} stations',
-                    style:
-                    const TextStyle(
-                      color:
-                      Colors.black,
-                      fontWeight:
-                      FontWeight.w600,
+                  suffixIcon:
+                  _searchingPlaces
+                      ? const Padding(
+                    padding:
+                    EdgeInsets.all(
+                      14,
                     ),
+                    child:
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child:
+                      CircularProgressIndicator(
+                        strokeWidth:
+                        2,
+                      ),
+                    ),
+                  )
+                      : _searchController
+                      .text
+                      .isNotEmpty
+                      ? IconButton(
+                    onPressed:
+                    _clearSearch,
+                    icon:
+                    const Icon(
+                      Icons.clear,
+                    ),
+                  )
+                      : null,
+                  filled: true,
+                  fillColor:
+                  Colors.white,
+                  border:
+                  OutlineInputBorder(
+                    borderRadius:
+                    BorderRadius
+                        .circular(
+                      14,
+                    ),
+                    borderSide:
+                    BorderSide.none,
                   ),
-                ],
+                ),
               ),
             ),
           ),
 
-          // =================================================
-          // MY LOCATION BUTTON
-          // =================================================
+          if (_suggestions.isNotEmpty)
+            Positioned(
+              top: 78,
+              left: 14,
+              right: 14,
+              child: Material(
+                elevation: 8,
+                borderRadius:
+                BorderRadius.circular(
+                  14,
+                ),
+                clipBehavior:
+                Clip.antiAlias,
+                child:
+                ConstrainedBox(
+                  constraints:
+                  const BoxConstraints(
+                    maxHeight: 260,
+                  ),
+                  child:
+                  ListView.separated(
+                    shrinkWrap: true,
+                    itemCount:
+                    _suggestions
+                        .length,
+                    separatorBuilder:
+                        (
+                        context,
+                        index,
+                        ) =>
+                    const Divider(
+                      height: 1,
+                    ),
+                    itemBuilder:
+                        (
+                        context,
+                        index,
+                        ) {
+                      final suggestion =
+                      _suggestions[
+                      index];
+
+                      return ListTile(
+                        tileColor:
+                        Colors.white,
+                        leading:
+                        const Icon(
+                          Icons.place,
+                          color:
+                          Colors.black,
+                        ),
+                        title: Text(
+                          suggestion
+                              .description,
+                          style:
+                          const TextStyle(
+                            color:
+                            Colors.black,
+                          ),
+                        ),
+                        onTap: () {
+                          _selectPlace(
+                            suggestion,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+          if (_suggestions.isEmpty)
+            Positioned(
+              top: 78,
+              left: 16,
+              child: Container(
+                padding:
+                const EdgeInsets
+                    .symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration:
+                BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                  BorderRadius
+                      .circular(
+                    20,
+                  ),
+                  boxShadow:
+                  const [
+                    BoxShadow(
+                      blurRadius: 5,
+                      color:
+                      Colors.black26,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.train,
+                      color:
+                      Colors.black,
+                    ),
+                    const SizedBox(
+                      width: 7,
+                    ),
+                    Text(
+                      '${stationLocations.length} stations',
+                      style:
+                      const TextStyle(
+                        color:
+                        Colors.black,
+                        fontWeight:
+                        FontWeight
+                            .w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           Positioned(
             right: 16,
             bottom: 30,
             child:
-            FloatingActionButton.extended(
+            FloatingActionButton
+                .extended(
               backgroundColor:
               Colors.black,
-
               foregroundColor:
               Colors.white,
-
               onPressed:
               _gettingLocation
                   ? null
                   : _goToMyLocation,
-
               icon: _gettingLocation
                   ? const SizedBox(
                 width: 20,
@@ -513,7 +957,6 @@ class _StationMapScreenState extends State<StationMapScreen> {
                   : const Icon(
                 Icons.my_location,
               ),
-
               label: Text(
                 _gettingLocation
                     ? 'Locating...'
@@ -525,4 +968,23 @@ class _StationMapScreenState extends State<StationMapScreen> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _mapController?.dispose();
+    super.dispose();
+  }
+}
+
+class _PlaceSuggestion {
+  final String placeId;
+  final String description;
+
+  const _PlaceSuggestion({
+    required this.placeId,
+    required this.description,
+  });
 }

@@ -18,7 +18,8 @@ class TransitDashboardScreen extends StatefulWidget {
 class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
   final _dbService = CardDatabaseService.instance;
   final _gtfsService = GtfsService();
-
+  List<TransitArrival> _liveArrivals = [];
+  bool _loadingArrivals = false;
   // Transit Cards State
   List<TransitCard> _cards = [];
   TransitCard? _selectedCardForTrip;
@@ -55,6 +56,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
   void initState() {
     super.initState();
     _loadCardsData();
+    _loadSchedules(_selectedType);
   }
 
   Future<void> _loadCardsData() async {
@@ -71,6 +73,16 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
         cardType: _selectedCardType,
       );
       _loadingCards = false;
+    });
+  }
+
+  Future<void> _loadSchedules(String mode) async {
+    setState(() => _loadingArrivals = true);
+    final arrivals = await _gtfsService.fetchArrivalsByMode(mode);
+    if (!mounted) return;
+    setState(() {
+      _liveArrivals = arrivals;
+      _loadingArrivals = false;
     });
   }
 
@@ -99,6 +111,13 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
     final updatedBalance = cardToCharge.balance - _calculatedFare;
     await _dbService.updateBalance(cardToCharge.id!, updatedBalance);
 
+    await _dbService.logTransaction(
+      cardId: cardToCharge.id!,
+      title: 'Fare Payment ($_hops stops)',
+      amount: _calculatedFare,
+      type: 'FARE',
+    );
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -112,8 +131,20 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
     _loadCardsData();
   }
 
-  void _showCardActions(TransitCard card) {
+  void _showCardActions(TransitCard card) async {
     final topUpCtrl = TextEditingController();
+    List<CardTransaction> transactions = [];
+
+    // Safely attempt to fetch transactions without blocking the modal
+    if (card.id != null) {
+      try {
+        transactions = await _dbService.getTransactionsByCard(card.id!);
+      } catch (e) {
+        debugPrint('Could not fetch transactions: $e');
+      }
+    }
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -128,96 +159,149 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
           top: 20,
           bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  card.cardName,
-                  style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Delete Card',
-                  onPressed: () async {
-                    if (card.id != null) {
-                      await _dbService.deleteCard(card.id!);
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      _loadCardsData();
-                    }
-                  },
-                ),
-              ],
-            ),
-            Text(
-              'Card No: ${card.cardNumber} (${card.cardType})',
-              style: GoogleFonts.dmSans(color: Colors.grey),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Current Balance: RM ${card.balance.toStringAsFixed(2)}',
-              style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const Divider(height: 24),
-            Text(
-              'Quick Top Up',
-              style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [10, 20, 50].map((amount) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: ActionChip(
-                    label: Text(
-                      '+ RM $amount',
-                      style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
-                    ),
-                    backgroundColor: appYellow.withOpacity(0.3),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    card.cardName,
+                    style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    tooltip: 'Delete Card',
                     onPressed: () async {
                       if (card.id != null) {
-                        await _dbService.updateBalance(card.id!, card.balance + amount);
+                        await _dbService.deleteCard(card.id!);
                         if (ctx.mounted) Navigator.pop(ctx);
                         _loadCardsData();
                       }
                     },
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: topUpCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Custom Amount (RM)',
-                prefixText: 'RM ',
-                border: OutlineInputBorder(),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: appYellow,
+              Text(
+                'Card No: ${card.cardNumber} (${card.cardType})',
+                style: GoogleFonts.dmSans(color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Current Balance: RM ${card.balance.toStringAsFixed(2)}',
+                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const Divider(height: 24),
+              Text(
+                'Quick Top Up',
+                style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [10, 20, 50].map((amount) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ActionChip(
+                      label: Text(
+                        '+ RM $amount',
+                        style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                      ),
+                      backgroundColor: appYellow.withOpacity(0.3),
+                      onPressed: () async {
+                        if (card.id != null) {
+                          await _dbService.updateBalance(card.id!, card.balance + amount);
+                          try {
+                            await _dbService.logTransaction(
+                              cardId: card.id!,
+                              title: 'Quick Top Up',
+                              amount: amount.toDouble(),
+                              type: 'TOP_UP',
+                            );
+                          } catch (_) {}
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          _loadCardsData();
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: topUpCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Custom Amount (RM)',
+                  prefixText: 'RM ',
+                  border: OutlineInputBorder(),
                 ),
-                onPressed: () async {
-                  final amount = double.tryParse(topUpCtrl.text.trim()) ?? 0.0;
-                  if (amount > 0 && card.id != null) {
-                    await _dbService.updateBalance(card.id!, card.balance + amount);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    _loadCardsData();
-                  }
-                },
-                child: Text('Top Up Now', style: GoogleFonts.dmSans(fontWeight: FontWeight.bold)),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: appYellow,
+                  ),
+                  onPressed: () async {
+                    final amount = double.tryParse(topUpCtrl.text.trim()) ?? 0.0;
+                    if (amount > 0 && card.id != null) {
+                      await _dbService.updateBalance(card.id!, card.balance + amount);
+                      try {
+                        await _dbService.logTransaction(
+                          cardId: card.id!,
+                          title: 'Manual Top Up',
+                          amount: amount,
+                          type: 'TOP_UP',
+                        );
+                      } catch (_) {}
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _loadCardsData();
+                    }
+                  },
+                  child: Text('Top Up Now', style: GoogleFonts.dmSans(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const Divider(height: 24),
+              Text(
+                'Recent Transactions',
+                style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              if (transactions.isEmpty)
+                Text(
+                  'No transactions recorded yet.',
+                  style: GoogleFonts.dmSans(color: Colors.grey, fontSize: 13),
+                )
+              else
+                ...transactions.map((tx) {
+                  final isTopUp = tx.type == 'TOP_UP';
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      isTopUp ? Icons.arrow_downward : Icons.arrow_upward,
+                      color: isTopUp ? Colors.green : Colors.red,
+                    ),
+                    title: Text(
+                      tx.title,
+                      style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(tx.date, style: GoogleFonts.dmSans(fontSize: 11)),
+                    trailing: Text(
+                      '${isTopUp ? '+' : '-'} RM ${tx.amount.toStringAsFixed(2)}',
+                      style: GoogleFonts.dmSans(
+                        fontWeight: FontWeight.bold,
+                        color: isTopUp ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
         ),
       ),
     );
@@ -350,9 +434,9 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               itemBuilder: (ctx, i) {
                 final card = _cards[i];
                 final isOku = card.cardType.contains('OKU');
-                return InkWell(
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _showCardActions(card),
-                  borderRadius: BorderRadius.circular(16),
                   child: Container(
                     width: 250,
                     margin: const EdgeInsets.only(right: 12),
@@ -413,7 +497,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   ),
                 );
               },
-            ),
+            )
           ),
 
           const SizedBox(height: 24),
@@ -536,6 +620,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
               setState(() {
                 _selectedType = newSelection.first;
               });
+              _loadSchedules(_selectedType);
             },
           ),
           const SizedBox(height: 16),
@@ -557,9 +642,15 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
           ),
           const SizedBox(height: 12),
 
-          ...activeSchedules.map((item) {
-            final isAccessible = item['stepFree'] == 'Yes';
-            return Card(
+          if (_loadingArrivals)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            ..._liveArrivals.map((arrival) => Card(
               margin: const EdgeInsets.only(bottom: 12),
               color: Colors.white,
               elevation: 2,
@@ -575,31 +666,28 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                   ),
                 ),
                 title: Text(
-                  item['line']!,
+                  arrival.line,
                   style: GoogleFonts.dmSans(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Row(
                   children: [
                     Expanded(
                       child: Text(
-                        'To ${item['dest']}',
+                        'To ${arrival.destination} • ${arrival.platform}',
                         style: GoogleFonts.dmSans(),
                         overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    if (isAccessible)
-                      Row(
+                    if (arrival.isStepFree)
+                      const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.accessible, size: 14, color: Colors.black),
-                          const SizedBox(width: 2),
+                          Icon(Icons.accessible, size: 14, color: Colors.black),
+                          SizedBox(width: 2),
                           Text(
                             'Step-Free',
-                            style: GoogleFonts.dmSans(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.black,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -617,7 +705,7 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        item['time']!,
+                        '${arrival.arrivalMinutes} min',
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
                           color: Colors.black,
@@ -625,15 +713,18 @@ class _TransitDashboardScreenState extends State<TransitDashboardScreen> {
                         ),
                       ),
                       Text(
-                        'ETA',
-                        style: GoogleFonts.dmSans(fontSize: 9, color: Colors.black87),
+                        'LIVE',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade800,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            );
-          }),
+            )),
         ],
       ),
     );
